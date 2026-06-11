@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pdfsmith — every PDF tool, one tab</title>
+<meta name="description" content="Merge, split, compress, convert, protect — fast, private PDF tools that run on your own server.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔨</text></svg>">
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+<div class="bg-blob" aria-hidden="true"></div>
+
+<header class="top">
+  <a class="brand" href="#" id="brand">
+    <span class="brand-mark">🔨</span>
+    <span class="brand-name">pdf<em>smith</em></span>
+  </a>
+  <div class="top-actions">
+    <a class="ghost-link" href="https://github.com/vishalblz10/pdfsmith" target="_blank" rel="noopener">GitHub</a>
+    <button class="theme-toggle" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">🌗</button>
+  </div>
+</header>
+
+<main>
+  <section id="home">
+    <div class="hero">
+      <h1>Every PDF tool, <span class="grad">one tab.</span></h1>
+      <p class="sub">Merge, split, compress, convert, protect — processed in memory on your own
+      server and never stored. No accounts, no limits, no nonsense.</p>
+      <input type="search" id="search" class="search" placeholder="Search tools…  ( / )" autocomplete="off">
+    </div>
+    <div id="grid" class="grid" aria-live="polite"></div>
+  </section>
+
+  <section id="tool" hidden>
+    <button class="back" id="back">← All tools</button>
+    <div class="tool-head">
+      <span class="tool-icon" id="tool-icon"></span>
+      <div>
+        <h2 id="tool-title"></h2>
+        <p class="tool-desc" id="tool-desc"></p>
+      </div>
+    </div>
+
+    <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Add files">
+      <div class="dz-inner">
+        <div class="dz-icon">⬆️</div>
+        <strong>Drop files here</strong>
+        <span>or click to browse</span>
+      </div>
+      <input type="file" id="file-input" hidden>
+    </div>
+
+    <ul class="file-list" id="file-list"></ul>
+    <div class="thumbs" id="thumbs" hidden></div>
+    <form class="options" id="options"></form>
+
+    <div class="actions">
+      <button class="cta" id="run">Run</button>
+      <span class="hint" id="hint"></span>
+    </div>
+
+    <div class="result" id="result" hidden>
+      <div class="result-icon">✅</div>
+      <div class="result-body">
+        <strong id="result-name"></strong>
+        <span id="result-meta"></span>
+      </div>
+      <a class="cta" id="download" download>Download</a>
+      <button class="ghost" id="again">Start over</button>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>Files are processed in memory and never stored.</span>
+  <span id="availability-note"></span>
+</footer>
+
+<div class="toasts" id="toasts" aria-live="assertive"></div>
+
+<script type="module" src="/static/js/app.js"></script>
+</body>
+</html>
