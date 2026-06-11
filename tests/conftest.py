@@ -40,6 +40,15 @@ def upload(name: str, data: bytes) -> UploadedFile:
 
 
 @pytest.fixture(scope="session")
+def client_module():
+    from fastapi.testclient import TestClient
+
+    from pdfsmith.api import create_app
+
+    return TestClient(create_app())
+
+
+@pytest.fixture(scope="session")
 def pdf3() -> bytes:
     return make_text_pdf()
 
