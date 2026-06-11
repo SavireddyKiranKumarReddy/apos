@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdfsmith"
-version = "1.0.0"
+version = "1.1.0"
 description = "Every PDF tool in one tab: merge, split, compress, organize, convert, protect and more — a self-hostable web app with a clean API."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -23,6 +23,11 @@ dependencies = [
     "img2pdf>=0.5",
     "reportlab>=4.1",
     "pdf2docx>=0.5.8",
+    "pyhanko>=0.25",
+    "python-pptx>=1.0",
+    "pdfplumber>=0.11",
+    "openpyxl>=3.1",
+    "weasyprint>=62",
 ]
 
 [project.optional-dependencies]
