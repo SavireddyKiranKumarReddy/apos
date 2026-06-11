@@ -29,14 +29,26 @@ docker compose up --build
 | 🗜️ | **Compress** | lossless always; balanced/strong via Ghostscript |
 | 💧 | **Watermark** | translucent text, diagonal or edges, tunable opacity |
 | 🔢 | **Page numbers** | four positions, custom start, `n / total` format |
+| ✏️ | **Edit PDF** | type text, stamp images, draw boxes — placed visually on the page |
+| 🖊️ | **Fill PDF form** | fields appear as real inputs the moment you add the file |
+| 🔲 | **Crop** | trim margins (mm) on all pages or a selection |
+| 🗑️ | **Remove pages** | delete the pages you pick |
 | 🖼️ | **Images → PDF** | JPG/PNG (alpha handled) into one document |
 | 📸 | **PDF → Images** | crisp PNG/JPG at 72/150/300 dpi |
 | 📝 | **PDF → Word** | editable `.docx` via pdf2docx |
+| 📽️ | **PDF → PowerPoint** | one faithful full-bleed slide per page |
+| 📊 | **PDF → Excel** | detected tables into `.xlsx`, one sheet per page |
+| 🗄️ | **PDF → PDF/A** | ISO archival format via Ghostscript* |
+| 🌐 | **HTML → PDF** | offline rendering, external resources disabled* |
 | 📄 | **Office → PDF** | Word/Excel/PowerPoint/OpenDocument via LibreOffice* |
 | 🔍 | **OCR** | make scans searchable via Tesseract + ocrmypdf* |
 | 📜 | **Extract text** | the whole document as `.txt` |
 | 🔒 | **Protect** | AES-256 password encryption |
 | 🔓 | **Unlock** | remove a password you know |
+| 🖋️ | **Sign PDF** | real PAdES digital signatures: your .p12, or a generated certificate |
+| 🕵️ | **Verify signatures** | who signed it, and whether it changed since |
+| ⬛ | **Redact** | black boxes that rasterize the page — the text underneath is *gone* |
+| ⚖️ | **Compare** | page-by-page text diff plus a visual difference score |
 | 🩹 | **Repair** | rebuild damaged cross-reference tables |
 | 🏷️ | **Metadata** | set title / author / subject |
 
@@ -77,29 +89,51 @@ Errors come back as JSON with a real message; uploads are capped by
 ```
 pdfsmith/
   tools/
-    registry.py   Tool dataclass: options schema, availability probe, runner
-    basic.py      merge, split, organize, rotate          (pypdf)
-    transform.py  watermark, page numbers, compress       (reportlab, pikepdf, gs)
-    convert.py    images↔pdf, pdf→word, office→pdf, ocr   (pypdfium2, img2pdf, …)
-    secure.py     protect, unlock, repair, metadata       (pikepdf)
-  api.py          FastAPI: GET /api/tools, POST /api/tools/{name}
-static/           the frontend (no build step)
-deploy/DEPLOY.md  Fly.io / Render / Railway / VPS+Caddy recipes
+    registry.py      Tool dataclass: options schema, availability probe, runner
+    basic.py         merge, split, organize, rotate             (pypdf)
+    transform.py     watermark, page numbers, compress          (reportlab, pikepdf, gs)
+    convert.py       images↔pdf, pdf→word, office→pdf, ocr      (pypdfium2, img2pdf, …)
+    convert_more.py  html→pdf, pdf→pptx, pdf→xlsx, pdf→pdf/a    (weasyprint, python-pptx, pdfplumber)
+    edit.py          visual edit overlay, crop, remove, redact  (reportlab, pypdfium2)
+    sign.py          PAdES signatures + verification            (pyhanko, cryptography)
+    forms.py         AcroForm listing + filling                 (pypdf)
+    analyze.py       compare                                    (difflib, pypdfium2)
+    secure.py        protect, unlock, repair, metadata          (pikepdf)
+  api.py             FastAPI: GET /api/tools, POST /api/tools/{name},
+                     POST /api/inspect/form-fields
+static/              the frontend (no build step) + the visual page editor
+deploy/DEPLOY.md     Fly.io / Render / Railway / VPS+Caddy recipes
 ```
 
 Every tool is a pure function `(files, options) → result`, registered with a
 schema the frontend renders automatically — adding a tool is one function and
 one `register()` call, and it appears in the UI with its options, no
-frontend work.
+frontend work. Tools run on a worker thread pool, so a five-minute LibreOffice
+conversion never blocks the next user's merge.
+
+## Honest scoping
+
+Where a capability has hard limits, the tool says so rather than pretending:
+
+- **Edit** is an overlay editor (add text/images/boxes anywhere) — it does not
+  rewrite existing content streams like a desktop editor.
+- **Redact** rasterizes affected pages, which is *why* the hidden text is
+  unrecoverable; redacted pages become images (run OCR after if you need them
+  searchable).
+- **Sign** produces real, validating PAdES signatures; a generated certificate
+  is self-signed, so validators report it valid-but-untrusted unless you
+  upload a CA-issued .p12.
+- **PDF → PowerPoint** gives one faithful slide image per page; **PDF →
+  Excel** extracts ruled tables it can detect and falls back to text rows.
 
 ## Tests
 
-51 tests cover every tool (page counts, rotation flags, AES round-trips,
-watermark text in extracted output, compression that never returns a bigger
-file, alpha-channel images, damaged-file repair) plus the full HTTP layer
-(error shapes, upload caps, content-disposition). CI also boots the real
-server and merges PDFs over HTTP, then builds the Docker image and asserts
-**all 17 tools** report available inside it.
+82 tests cover every tool (AES and signature round-trips, tamper detection,
+redaction that actually removes text, hand-checked crop math, table
+extraction, compression that never returns a bigger file) plus the full HTTP
+layer (error shapes, upload caps, the event-loop regression for signing). CI
+also boots the real server and merges PDFs over HTTP, then builds the Docker
+image and asserts **all 29 tools** report available inside it.
 
 ```bash
 pip install -e ".[dev]"
