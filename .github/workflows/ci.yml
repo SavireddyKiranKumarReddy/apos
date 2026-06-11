@@ -18,10 +18,12 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: System tools (covers the Ghostscript + OCR test paths)
+      - name: System tools (covers the Ghostscript, OCR and WeasyPrint test paths)
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ghostscript tesseract-ocr tesseract-ocr-eng
+          sudo apt-get install -y --no-install-recommends \
+            ghostscript tesseract-ocr tesseract-ocr-eng \
+            libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0
 
       - name: Install
         run: pip install -e ".[dev,ocr]"
