@@ -42,16 +42,7 @@ def create_app() -> FastAPI:
             "max_upload_mb": max_upload_bytes() // (1024 * 1024),
         }
 
-    @app.post("/api/tools/{name}")
-    async def run_tool(name: str, request: Request) -> Response:
-        try:
-            tool = get_tool(name)
-        except KeyError:
-            raise HTTPException(404, f"no tool called {name!r}")
-        if not tool.available():
-            raise HTTPException(503, f"{tool.label} is not available on this server "
-                                     f"({tool.unavailable_hint})")
-
+    async def collect_form(request: Request) -> tuple[list[UploadedFile], dict[str, str]]:
         form = await request.form()
         files: list[UploadedFile] = []
         options: dict[str, str] = {}
@@ -67,7 +58,27 @@ def create_app() -> FastAPI:
                     files.append(UploadedFile(name=value.filename or "file", data=data))
             else:
                 options[key] = str(value)
+        return files, options
 
+    def file_response(result) -> Response:
+        quoted = urllib.parse.quote(result.filename)
+        return Response(
+            content=result.data,
+            media_type=result.media_type,
+            headers={"Content-Disposition": f'attachment; filename="{quoted}"'},
+        )
+
+    @app.post("/api/tools/{name}")
+    async def run_tool(name: str, request: Request) -> Response:
+        try:
+            tool = get_tool(name)
+        except KeyError:
+            raise HTTPException(404, f"no tool called {name!r}")
+        if not tool.available():
+            raise HTTPException(503, f"{tool.label} is not available on this server "
+                                     f"({tool.unavailable_hint})")
+
+        files, options = await collect_form(request)
         if len(files) < tool.min_files:
             raise HTTPException(400, f"{tool.label} needs at least {tool.min_files} file(s)")
         if not tool.multiple and len(files) > 1:
@@ -80,13 +91,25 @@ def create_app() -> FastAPI:
             result = await run_in_threadpool(tool.run, files, options)
         except ToolError as exc:
             raise HTTPException(400, str(exc))
+        return file_response(result)
 
-        quoted = urllib.parse.quote(result.filename)
-        return Response(
-            content=result.data,
-            media_type=result.media_type,
-            headers={"Content-Disposition": f'attachment; filename="{quoted}"'},
-        )
+    @app.post("/api/workflows/run")
+    async def run_workflow_endpoint(request: Request) -> Response:
+        import json
+
+        from pdfsmith.workflows import run_workflow
+
+        files, options = await collect_form(request)
+        try:
+            steps = json.loads(options.get("steps", "[]"))
+        except json.JSONDecodeError:
+            raise HTTPException(400, "steps must be valid JSON")
+
+        try:
+            result = await run_in_threadpool(run_workflow, files, steps)
+        except ToolError as exc:
+            raise HTTPException(400, str(exc))
+        return file_response(result)
 
     @app.post("/api/inspect/form-fields")
     async def inspect_form_fields(request: Request) -> dict:
