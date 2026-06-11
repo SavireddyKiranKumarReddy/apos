@@ -1,0 +1,12 @@
+services:
+  pdfsmith:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      PDFSMITH_MAX_MB: "100"
+    restart: unless-stopped
+    # PDFs are processed in memory; nothing is written, so no volumes needed.
+    read_only: true
+    tmpfs:
+      - /tmp
