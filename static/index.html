@@ -54,6 +54,25 @@
 
     <ul class="file-list" id="file-list"></ul>
     <div class="thumbs" id="thumbs" hidden></div>
+
+    <div class="editor" id="editor" hidden>
+      <div class="editor-bar">
+        <div class="editor-tools" id="editor-tools"></div>
+        <div class="editor-nav">
+          <button class="ghost small" id="editor-prev" type="button" aria-label="Previous page">‹</button>
+          <span id="editor-pageno"></span>
+          <button class="ghost small" id="editor-next" type="button" aria-label="Next page">›</button>
+        </div>
+      </div>
+      <div class="editor-canvas-wrap" id="editor-canvas-wrap">
+        <canvas id="editor-canvas"></canvas>
+        <div class="editor-overlay" id="editor-overlay"></div>
+      </div>
+      <p class="hint" id="editor-status"></p>
+      <input type="file" id="editor-image-input" accept="image/*" hidden>
+    </div>
+
+    <div class="options" id="form-fields" hidden></div>
     <form class="options" id="options"></form>
 
     <div class="actions">

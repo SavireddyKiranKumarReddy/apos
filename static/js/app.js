@@ -2,7 +2,17 @@
    multipart POST, and adds the niceties — drag-drop, pdf.js page thumbnails
    with click-select / drag-reorder, theme toggle, toasts. */
 
+import {
+  collectEditor,
+  editorActive,
+  openEditor,
+  resetEditor,
+  wireEditor,
+} from "./editor.js";
+
 const $ = (selector) => document.querySelector(selector);
+
+const EDITOR_TOOLS = { edit: "elements", redact: "regions" };
 
 const state = {
   tools: [],
@@ -49,6 +59,7 @@ async function init() {
   $("#again").addEventListener("click", () => openTool(state.tool.name));
   $("#run").addEventListener("click", runTool);
   setupDropzone();
+  wireEditor();
 }
 
 function availabilityNote(tools) {
@@ -132,7 +143,12 @@ function openTool(name) {
   $("#run").classList.remove("working");
   $("#thumbs").hidden = true;
   $("#thumbs").innerHTML = "";
-  $("#hint").textContent = tool.multiple ? "add as many files as you like" : "";
+  resetEditor();
+  $("#form-fields").hidden = true;
+  $("#form-fields").innerHTML = "";
+  $("#hint").textContent =
+    tool.name === "sign" ? "add the PDF — and optionally a .p12/.pfx certificate"
+    : tool.multiple ? "add as many files as you like" : "";
 
   const input = $("#file-input");
   input.accept = tool.accepts;
@@ -141,10 +157,20 @@ function openTool(name) {
   renderOptions(tool);
 }
 
+const PROGRAMMATIC_OPTIONS = new Set(["elements", "regions", "fields"]);
+
 function renderOptions(tool) {
   const form = $("#options");
   form.innerHTML = "";
   for (const option of tool.options) {
+    if (PROGRAMMATIC_OPTIONS.has(option.name) &&
+        (EDITOR_TOOLS[tool.name] || tool.name === "form_fill")) {
+      const hidden = document.createElement("input");
+      hidden.type = "hidden";
+      hidden.name = option.name;
+      form.appendChild(hidden);
+      continue;
+    }
     const field = document.createElement("div");
     field.className = "field" + (option.kind === "checkbox" ? " check" : "");
     const id = `opt-${option.name}`;
@@ -216,11 +242,72 @@ function setupDropzone() {
 
 function addFiles(files) {
   if (!state.tool || !files.length) return;
-  if (!state.tool.multiple) state.files = files.slice(0, 1);
-  else state.files.push(...files);
+  if (!state.tool.multiple || EDITOR_TOOLS[state.tool.name]) {
+    state.files = files.slice(0, 1);
+  } else {
+    state.files.push(...files);
+  }
   $("#file-input").value = "";
   renderFileList();
-  if (state.tool.wants_pages && state.files.length === 1) renderThumbnails(state.files[0]);
+  if (EDITOR_TOOLS[state.tool.name] && state.files.length === 1) {
+    openEditor(state.files[0], state.tool.name, loadPdfjs);
+  } else if (state.tool.name === "form_fill" && state.files.length === 1) {
+    loadFormFields(state.files[0]);
+  } else if (state.tool.wants_pages && state.files.length === 1) {
+    renderThumbnails(state.files[0]);
+  }
+}
+
+async function loadFormFields(file) {
+  const container = $("#form-fields");
+  container.hidden = false;
+  container.innerHTML = "<span class='hint'>reading form fields…</span>";
+  const body = new FormData();
+  body.append("file", file, file.name);
+  try {
+    const response = await fetch("/api/inspect/form-fields", { method: "POST", body });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "could not read the form");
+    if (!payload.fields.length) {
+      container.innerHTML = "<span class='hint'>this PDF has no fillable fields</span>";
+      return;
+    }
+    container.innerHTML = "";
+    for (const field of payload.fields) {
+      const wrap = document.createElement("div");
+      wrap.className = "field" + (field.type === "checkbox" ? " check" : "");
+      let control;
+      if (field.type === "checkbox") {
+        control = document.createElement("input");
+        control.type = "checkbox";
+        control.checked = Boolean(field.value) && field.value !== "/Off";
+        control.dataset.onState =
+          (field.states || []).find((stateName) => stateName !== "/Off") || "/Yes";
+      } else if (field.type === "choice" && field.states?.length) {
+        control = document.createElement("select");
+        for (const stateName of field.states) {
+          const entry = document.createElement("option");
+          entry.value = stateName;
+          entry.textContent = stateName;
+          if (stateName === field.value) entry.selected = true;
+          control.appendChild(entry);
+        }
+      } else {
+        control = document.createElement("input");
+        control.type = "text";
+        control.value = field.value;
+      }
+      control.dataset.formField = field.name;
+      const label = document.createElement("label");
+      label.textContent = field.name;
+      if (field.type === "checkbox") wrap.append(control, label);
+      else wrap.append(label, control);
+      container.appendChild(wrap);
+    }
+  } catch (error) {
+    container.hidden = true;
+    toast(error.message, "error");
+  }
 }
 
 function renderFileList() {
@@ -353,8 +440,44 @@ async function runTool() {
     toast(`${tool.label} needs at least ${tool.min_files} file(s)`, "error");
     return;
   }
+  let extraFiles = [];
+  if (EDITOR_TOOLS[tool.name]) {
+    if (!editorActive()) {
+      toast("add a PDF first", "error");
+      return;
+    }
+    const { elements, images } = collectEditor();
+    const payload = tool.name === "redact"
+      ? elements.filter((e) => e.type === "rect")
+          .map(({ page, x, y, w, h }) => ({ page, x, y, w, h }))
+      : elements;
+    if (!payload.length) {
+      toast("place at least one element on the page first", "error");
+      return;
+    }
+    document.querySelector(`#options [name=${EDITOR_TOOLS[tool.name]}]`).value =
+      JSON.stringify(payload);
+    if (tool.name === "edit") extraFiles = images;
+  }
+  if (tool.name === "form_fill") {
+    const values = {};
+    for (const control of $("#form-fields").querySelectorAll("[data-form-field]")) {
+      if (control.type === "checkbox") {
+        if (control.checked) values[control.dataset.formField] = control.dataset.onState;
+      } else if (control.value !== "") {
+        values[control.dataset.formField] = control.value;
+      }
+    }
+    if (!Object.keys(values).length) {
+      toast("fill in at least one field", "error");
+      return;
+    }
+    document.querySelector("#options [name=fields]").value = JSON.stringify(values);
+  }
+
   const body = new FormData();
   for (const file of state.files) body.append("files", file, file.name);
+  for (const file of extraFiles) body.append("files", file, file.name);
   for (const element of $("#options").elements) {
     if (!element.name) continue;
     body.append(element.name, element.type === "checkbox" ? element.checked : element.value);
