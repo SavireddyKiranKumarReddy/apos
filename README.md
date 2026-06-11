@@ -51,10 +51,21 @@ docker compose up --build
 | ⚖️ | **Compare** | page-by-page text diff plus a visual difference score |
 | 🩹 | **Repair** | rebuild damaged cross-reference tables |
 | 🏷️ | **Metadata** | set title / author / subject |
+| 🧠 | **AI Summarizer** | faithful Markdown summary of any text PDF* |
+| 🌍 | **Translate PDF** | the document's text in another language* |
 
-\* needs a system binary. The server detects what's installed and the UI
-greys out missing tools with an honest hint — the Docker image has
-everything, and CI asserts that every tool reports available inside it.
+…and **⚡ Workflows**: chain tools into reusable pipelines ("Office → PDF,
+watermark, compress, merge") that run on any stack of files in one click —
+saved in your browser, free and unlimited.
+
+\* needs something from the operator: a system binary (LibreOffice, Tesseract,
+Ghostscript — all bundled in the Docker image), or for the AI tools an
+`ANTHROPIC_API_KEY` env var. The server detects what's present and the UI
+greys out missing tools with an honest hint; CI asserts every tool reports
+available inside the Docker image. The AI tools call the Claude API
+(`claude-opus-4-8` by default; override with `PDFSMITH_AI_MODEL`) — they are
+the one case where document text leaves your server, and only when you
+enable them.
 
 ## Why it feels fast
 
@@ -79,10 +90,19 @@ curl -F "files=@big.pdf" -F "level=lossless" -o small.pdf \
   localhost:8000/api/tools/compress
 
 curl localhost:8000/api/tools        # tool list + options + availability
+
+# chain tools server-side in one request — the Workflows engine
+curl -F "files=@a.pdf" -F "files=@b.pdf" -o out.pdf \
+  -F 'steps=[{"tool":"merge"},
+             {"tool":"watermark","options":{"text":"FINAL"}},
+             {"tool":"compress","options":{"level":"lossless"}}]' \
+  localhost:8000/api/workflows/run
 ```
 
 Errors come back as JSON with a real message; uploads are capped by
-`PDFSMITH_MAX_MB` (default 50).
+`PDFSMITH_MAX_MB` (default 50). Workflow rules are enforced server-side:
+every step except the last must produce PDFs, only step 1 may take non-PDF
+input, and step errors report their position.
 
 ## Architecture
 
@@ -99,9 +119,12 @@ pdfsmith/
     forms.py         AcroForm listing + filling                 (pypdf)
     analyze.py       compare                                    (difflib, pypdfium2)
     secure.py        protect, unlock, repair, metadata          (pikepdf)
+    ai.py            summarize, translate                       (Claude API, key-gated)
+  workflows.py       the pipeline engine: validate + run step chains
   api.py             FastAPI: GET /api/tools, POST /api/tools/{name},
-                     POST /api/inspect/form-fields
-static/              the frontend (no build step) + the visual page editor
+                     POST /api/workflows/run, POST /api/inspect/form-fields
+static/              the frontend (no build step): tool grid + category tabs,
+                     convert/all-tools menus, visual page editor, workflow builder
 deploy/DEPLOY.md     Fly.io / Render / Railway / VPS+Caddy recipes
 ```
 
@@ -125,15 +148,20 @@ Where a capability has hard limits, the tool says so rather than pretending:
   upload a CA-issued .p12.
 - **PDF → PowerPoint** gives one faithful slide image per page; **PDF →
   Excel** extracts ruled tables it can detect and falls back to text rows.
+- **AI Summarizer / Translate** send extracted text to the Claude API — they
+  refuse scans (run OCR first) and oversized documents rather than silently
+  truncating, and they're off until you provide a key.
 
 ## Tests
 
-82 tests cover every tool (AES and signature round-trips, tamper detection,
+101 tests cover every tool (AES and signature round-trips, tamper detection,
 redaction that actually removes text, hand-checked crop math, table
-extraction, compression that never returns a bigger file) plus the full HTTP
-layer (error shapes, upload caps, the event-loop regression for signing). CI
-also boots the real server and merges PDFs over HTTP, then builds the Docker
-image and asserts **all 29 tools** report available inside it.
+extraction, compression that never returns a bigger file, workflow chaining
+and its validation rules, AI tools against a stubbed API — no network in
+tests) plus the full HTTP layer (error shapes, upload caps, the event-loop
+regression for signing). CI also boots the real server and merges PDFs over
+HTTP, then builds the Docker image and asserts **all 31 tools** report
+available inside it.
 
 ```bash
 pip install -e ".[dev]"
