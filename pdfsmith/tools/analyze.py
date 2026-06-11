@@ -91,6 +91,7 @@ def run_compare(files: list[UploadedFile], options: dict) -> ToolResult:
 
 register(Tool(
     name="compare",
+    produces_pdf=False,
     label="Compare PDF",
     description="Page-by-page text diff plus a visual difference score.",
     icon="⚖️",

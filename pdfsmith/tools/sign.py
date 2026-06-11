@@ -184,6 +184,7 @@ register(Tool(
 
 register(Tool(
     name="verify_signatures",
+    produces_pdf=False,
     label="Verify signatures",
     description="Check who signed a PDF and whether it was modified since.",
     icon="🕵️",

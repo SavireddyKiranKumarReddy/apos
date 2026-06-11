@@ -215,6 +215,7 @@ def run_redact(files: list[UploadedFile], options: dict) -> ToolResult:
 
 register(Tool(
     name="edit",
+    interactive=True,
     label="Edit PDF",
     description="Type text, stamp images and draw boxes right on the page.",
     icon="✏️",
@@ -254,6 +255,7 @@ register(Tool(
 
 register(Tool(
     name="redact",
+    interactive=True,
     label="Redact PDF",
     description="Black out regions — affected pages are rasterized so the text underneath is truly gone.",
     icon="⬛",

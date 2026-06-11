@@ -172,6 +172,7 @@ register(Tool(
 
 register(Tool(
     name="pdf_to_images",
+    produces_pdf=False,
     label="PDF → Images",
     description="Render pages to crisp PNG or JPG.",
     icon="📸",
@@ -188,6 +189,7 @@ register(Tool(
 
 register(Tool(
     name="pdf_to_word",
+    produces_pdf=False,
     label="PDF → Word",
     description="Turn a PDF into an editable .docx.",
     icon="📝",
@@ -225,6 +227,7 @@ register(Tool(
 
 register(Tool(
     name="extract_text",
+    produces_pdf=False,
     label="Extract text",
     description="Pull all text out of a PDF as a .txt file.",
     icon="📜",

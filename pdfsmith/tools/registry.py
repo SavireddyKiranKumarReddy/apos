@@ -64,6 +64,8 @@ class Tool:
     available: Callable[[], bool] = lambda: True
     unavailable_hint: str = ""
     category: str = "core"
+    produces_pdf: bool = True  # False → only valid as the last step of a workflow
+    interactive: bool = False  # needs per-file UI state; hidden from the workflow builder
 
     def describe(self) -> dict:
         return {
@@ -79,6 +81,8 @@ class Tool:
             "available": bool(self.available()),
             "unavailable_hint": self.unavailable_hint,
             "category": self.category,
+            "produces_pdf": self.produces_pdf,
+            "interactive": self.interactive,
         }
 
 

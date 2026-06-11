@@ -69,6 +69,7 @@ def run_form_fill(files: list[UploadedFile], options: dict) -> ToolResult:
 
 register(Tool(
     name="form_fill",
+    interactive=True,
     label="Fill PDF form",
     description="Fill a form's fields — they appear automatically when you add the file.",
     icon="🖊️",

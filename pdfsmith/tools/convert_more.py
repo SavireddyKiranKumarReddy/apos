@@ -163,6 +163,7 @@ register(Tool(
 
 register(Tool(
     name="pdf_to_powerpoint",
+    produces_pdf=False,
     label="PDF → PowerPoint",
     description="One faithful full-bleed slide per page (.pptx).",
     icon="📽️",
@@ -172,6 +173,7 @@ register(Tool(
 
 register(Tool(
     name="pdf_to_excel",
+    produces_pdf=False,
     label="PDF → Excel",
     description="Extract detected tables into .xlsx, one sheet per page.",
     icon="📊",

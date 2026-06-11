@@ -101,6 +101,7 @@ register(Tool(
 
 register(Tool(
     name="split",
+    interactive=True,
     label="Split PDF",
     description="Extract a page range, or burst every page into its own file.",
     icon="✂️",
@@ -116,6 +117,7 @@ register(Tool(
 
 register(Tool(
     name="organize",
+    interactive=True,
     label="Organize PDF",
     description="Reorder, duplicate or delete pages visually.",
     icon="🗂️",
