@@ -16,6 +16,21 @@
     <span class="brand-mark">🔨</span>
     <span class="brand-name">pdf<em>smith</em></span>
   </a>
+
+  <nav class="main-nav" id="main-nav" aria-label="Tools">
+    <button class="nav-link" data-open-tool="merge">Merge PDF</button>
+    <button class="nav-link" data-open-tool="split">Split PDF</button>
+    <button class="nav-link" data-open-tool="compress">Compress PDF</button>
+    <div class="nav-drop" data-menu="convert">
+      <button class="nav-link has-caret" aria-haspopup="true" aria-expanded="false">Convert PDF</button>
+      <div class="menu convert-menu" id="convert-menu" hidden></div>
+    </div>
+    <div class="nav-drop" data-menu="all">
+      <button class="nav-link has-caret accent" aria-haspopup="true" aria-expanded="false">All PDF Tools</button>
+      <div class="menu mega-menu" id="mega-menu" hidden></div>
+    </div>
+  </nav>
+
   <div class="top-actions">
     <a class="ghost-link" href="https://github.com/vishalblz10/pdfsmith" target="_blank" rel="noopener">GitHub</a>
     <button class="theme-toggle" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">🌗</button>
@@ -30,7 +45,61 @@
       server and never stored. No accounts, no limits, no nonsense.</p>
       <input type="search" id="search" class="search" placeholder="Search tools…  ( / )" autocomplete="off">
     </div>
+
+    <div class="tabs" id="tabs" role="tablist" aria-label="Tool categories"></div>
+
     <div id="grid" class="grid" aria-live="polite"></div>
+
+    <div id="workflows-panel" class="wf-panel" hidden>
+      <div class="grid" id="workflows-grid"></div>
+    </div>
+  </section>
+
+  <section id="workflow-editor" hidden>
+    <button class="back" id="wf-back">← Workflows</button>
+    <div class="tool-head">
+      <span class="tool-icon">⚡</span>
+      <div>
+        <h2 id="wf-title">New workflow</h2>
+        <p class="tool-desc">Chain tools into a pipeline — files flow through every step.</p>
+      </div>
+    </div>
+
+    <div class="field wf-name">
+      <label for="wf-name-input">Workflow name</label>
+      <input type="text" id="wf-name-input" placeholder="e.g. Convert, watermark & compress">
+    </div>
+
+    <ol class="wf-steps" id="wf-steps"></ol>
+    <div class="wf-add">
+      <select id="wf-tool-pick"></select>
+      <button class="ghost" id="wf-add-step" type="button">+ Add step</button>
+    </div>
+
+    <div class="dropzone" id="wf-dropzone" tabindex="0" role="button" aria-label="Add files">
+      <div class="dz-inner">
+        <div class="dz-icon">⬆️</div>
+        <strong>Drop files here</strong>
+        <span>they flow through every step above</span>
+      </div>
+      <input type="file" id="wf-file-input" multiple hidden>
+    </div>
+    <ul class="file-list" id="wf-file-list"></ul>
+
+    <div class="actions">
+      <button class="cta" id="wf-run">Run workflow</button>
+      <button class="ghost" id="wf-save" type="button">Save</button>
+      <span class="hint" id="wf-hint"></span>
+    </div>
+
+    <div class="result" id="wf-result" hidden>
+      <div class="result-icon">✅</div>
+      <div class="result-body">
+        <strong id="wf-result-name"></strong>
+        <span id="wf-result-meta"></span>
+      </div>
+      <a class="cta" id="wf-download" download>Download</a>
+    </div>
   </section>
 
   <section id="tool" hidden>

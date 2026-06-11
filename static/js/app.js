@@ -9,6 +9,11 @@ import {
   resetEditor,
   wireEditor,
 } from "./editor.js";
+import {
+  initWorkflows,
+  renderWorkflowsGrid,
+  setWorkflowToast,
+} from "./workflows.js";
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -21,14 +26,27 @@ const state = {
   pageOrder: [],      // organize: current thumbnail order (1-based page numbers)
   selectedPages: new Set(), // split/rotate: clicked pages
   pdfjs: null,
+  tab: "all",
 };
 
 const CATEGORIES = [
-  ["organize", "Organize"],
-  ["optimize", "Optimize"],
-  ["convert", "Convert"],
-  ["edit", "Edit"],
-  ["secure", "Secure"],
+  ["organize", "Organize PDF"],
+  ["optimize", "Optimize PDF"],
+  ["convert", "Convert PDF"],
+  ["edit", "Edit PDF"],
+  ["secure", "PDF Security"],
+  ["intelligence", "PDF Intelligence"],
+];
+
+const TABS = [
+  ["all", "All"],
+  ["workflows", "Workflows"],
+  ...CATEGORIES,
+];
+
+const CONVERT_TO_PDF = ["images_to_pdf", "office_to_pdf", "html_to_pdf"];
+const CONVERT_FROM_PDF = [
+  "pdf_to_images", "pdf_to_word", "pdf_to_powerpoint", "pdf_to_excel", "pdf_to_pdfa",
 ];
 
 /* ---------- boot ---------- */
@@ -41,12 +59,19 @@ async function init() {
     const response = await fetch("/api/tools");
     const payload = await response.json();
     state.tools = payload.tools;
+    renderTabs();
     renderGrid();
+    renderNavMenus();
+    setWorkflowToast(toast);
+    initWorkflows(state.tools, { onExit: showHome });
     $("#availability-note").textContent = availabilityNote(payload.tools);
   } catch {
     toast("Could not reach the pdfsmith API — is the server running?", "error");
   }
-  $("#search").addEventListener("input", renderGrid);
+  $("#search").addEventListener("input", () => {
+    if (state.tab === "workflows") setTab("all");
+    renderGrid();
+  });
   document.addEventListener("keydown", (event) => {
     if (event.key === "/" && document.activeElement !== $("#search")) {
       event.preventDefault();
@@ -84,13 +109,110 @@ function setupTheme() {
   });
 }
 
+/* ---------- tabs + nav ---------- */
+
+function renderTabs() {
+  const bar = $("#tabs");
+  bar.innerHTML = "";
+  for (const [key, label] of TABS) {
+    const button = document.createElement("button");
+    button.className = "tab" + (state.tab === key ? " active" : "");
+    button.textContent = label;
+    button.setAttribute("role", "tab");
+    button.addEventListener("click", () => setTab(key));
+    bar.appendChild(button);
+  }
+}
+
+function setTab(key) {
+  state.tab = key;
+  renderTabs();
+  const isWorkflows = key === "workflows";
+  $("#grid").hidden = isWorkflows;
+  $("#workflows-panel").hidden = !isWorkflows;
+  if (isWorkflows) renderWorkflowsGrid($("#workflows-grid"), toast);
+  else renderGrid();
+}
+
+function renderNavMenus() {
+  const convertMenu = $("#convert-menu");
+  convertMenu.innerHTML = "";
+  for (const [title, names] of [["Convert to PDF", CONVERT_TO_PDF],
+                                ["Convert from PDF", CONVERT_FROM_PDF]]) {
+    const column = document.createElement("div");
+    column.className = "menu-col";
+    const heading = document.createElement("h4");
+    heading.textContent = title;
+    column.appendChild(heading);
+    for (const name of names) {
+      const tool = state.tools.find((entry) => entry.name === name);
+      if (tool) column.appendChild(menuItem(tool));
+    }
+    convertMenu.appendChild(column);
+  }
+
+  const mega = $("#mega-menu");
+  mega.innerHTML = "";
+  for (const [key, title] of CATEGORIES) {
+    const tools = state.tools.filter((tool) => tool.category === key);
+    if (!tools.length) continue;
+    const column = document.createElement("div");
+    column.className = "menu-col";
+    const heading = document.createElement("h4");
+    heading.textContent = title;
+    column.appendChild(heading);
+    for (const tool of tools) column.appendChild(menuItem(tool));
+    mega.appendChild(column);
+  }
+
+  for (const drop of document.querySelectorAll(".nav-drop")) {
+    const button = drop.querySelector("button");
+    const menu = drop.querySelector(".menu");
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const wasHidden = menu.hidden;
+      closeMenus();
+      menu.hidden = !wasHidden;
+      button.setAttribute("aria-expanded", String(!menu.hidden));
+    });
+  }
+  document.addEventListener("click", closeMenus);
+  for (const quick of document.querySelectorAll("[data-open-tool]")) {
+    quick.addEventListener("click", () => openTool(quick.dataset.openTool));
+  }
+}
+
+function closeMenus() {
+  for (const menu of document.querySelectorAll(".nav-drop .menu")) menu.hidden = true;
+  for (const button of document.querySelectorAll(".nav-drop button")) {
+    button.setAttribute("aria-expanded", "false");
+  }
+}
+
+function menuItem(tool) {
+  const item = document.createElement("button");
+  item.className = "menu-item" + (tool.available ? "" : " unavailable");
+  item.innerHTML = `<span>${tool.icon}</span> ${tool.label}`;
+  if (tool.available) {
+    item.addEventListener("click", () => {
+      closeMenus();
+      openTool(tool.name);
+    });
+  } else {
+    item.title = tool.unavailable_hint;
+  }
+  return item;
+}
+
 /* ---------- home grid ---------- */
 
 function renderGrid() {
   const query = $("#search").value.trim().toLowerCase();
   const grid = $("#grid");
   grid.innerHTML = "";
-  for (const [key, title] of CATEGORIES) {
+  const categories =
+    state.tab === "all" ? CATEGORIES : CATEGORIES.filter(([key]) => key === state.tab);
+  for (const [key, title] of categories) {
     const tools = state.tools.filter(
       (tool) =>
         tool.category === key &&
@@ -123,6 +245,7 @@ function card(tool) {
 function showHome() {
   state.tool = null;
   $("#tool").hidden = true;
+  $("#workflow-editor").hidden = true;
   $("#home").hidden = false;
 }
 
@@ -134,6 +257,7 @@ function openTool(name) {
   state.selectedPages = new Set();
 
   $("#home").hidden = true;
+  $("#workflow-editor").hidden = true;
   $("#tool").hidden = false;
   $("#tool-icon").textContent = tool.icon;
   $("#tool-title").textContent = tool.label;

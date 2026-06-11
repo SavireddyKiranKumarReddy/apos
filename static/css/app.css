@@ -67,6 +67,45 @@ header.top {
 .brand-name { font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
 .brand-name em { font-style: normal; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
+/* ---- main nav ---- */
+.main-nav { display: flex; gap: 2px; align-items: center; flex-wrap: wrap; }
+.nav-link {
+  background: none; border: none; cursor: pointer;
+  font: inherit; font-size: 13.5px; font-weight: 700; letter-spacing: .02em;
+  color: var(--muted); padding: 9px 12px; border-radius: 10px;
+  transition: color .12s ease, background .12s ease;
+}
+.nav-link:hover { color: var(--text); background: var(--surface-2); }
+.nav-link.accent { color: var(--accent); }
+.has-caret::after { content: " ▾"; font-size: 11px; }
+.nav-drop { position: relative; }
+
+.menu {
+  position: absolute; top: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: var(--shadow); padding: 18px; z-index: 40;
+  display: flex; gap: 26px; animation: pop .15s ease;
+}
+.menu-col { min-width: 168px; }
+.menu-col h4 {
+  margin: 0 0 8px; font-size: 11px; font-weight: 800; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--muted);
+}
+.menu-item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: none; border: none; cursor: pointer; text-align: left;
+  font: inherit; font-size: 13.5px; font-weight: 600; color: var(--text);
+  padding: 7px 8px; border-radius: 9px; white-space: nowrap;
+}
+.menu-item:hover { background: var(--surface-2); color: var(--accent); }
+.menu-item.unavailable { opacity: .45; cursor: not-allowed; }
+.mega-menu { left: auto; right: 0; transform: none; flex-wrap: wrap; max-width: min(880px, 92vw); }
+
+@media (max-width: 900px) {
+  .main-nav .nav-link[data-open-tool] { display: none; }
+  .nav-drop[data-menu="convert"] { display: none; }
+}
+
 .top-actions { display: flex; gap: 12px; align-items: center; }
 .ghost-link { color: var(--muted); text-decoration: none; font-weight: 600; font-size: 14px; }
 .ghost-link:hover { color: var(--text); }
@@ -94,6 +133,55 @@ main { flex: 1; width: min(1060px, calc(100% - 32px)); margin: 0 auto; padding-b
   transition: border-color .15s ease, box-shadow .15s ease;
 }
 .search:focus { border-color: var(--accent); }
+
+/* ---- category tabs ---- */
+.tabs {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  padding-top: 22px;
+}
+.tab {
+  background: var(--surface); border: 1px solid var(--line); color: var(--text);
+  font: inherit; font-size: 13.5px; font-weight: 700;
+  padding: 9px 18px; border-radius: 999px; cursor: pointer;
+  transition: all .14s ease;
+}
+.tab:hover { border-color: var(--accent); transform: translateY(-1px); }
+.tab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+/* ---- workflows ---- */
+.wf-panel .grid, #workflows-grid { padding-top: 26px; }
+.wf-create { border-style: dashed; border-width: 2px; }
+.wf-card-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 8px; }
+
+.wf-name { max-width: 420px; margin-bottom: 18px; }
+.wf-steps { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.wf-empty { color: var(--muted); font-size: 14px; padding: 14px; border: 1.5px dashed var(--line); border-radius: 12px; }
+.wf-step {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 12px 14px; animation: pop .18s ease;
+}
+.wf-step-head { display: flex; align-items: center; gap: 10px; }
+.wf-step-num {
+  width: 24px; height: 24px; border-radius: 50%; flex: none;
+  background: var(--grad); color: #fff; font-size: 12px; font-weight: 800;
+  display: grid; place-items: center;
+}
+.wf-step-label { font-weight: 700; font-size: 14.5px; }
+.wf-step-controls { margin-left: auto; display: flex; gap: 6px; }
+.wf-step-options {
+  display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px;
+  padding-top: 10px; border-top: 1px dashed var(--line);
+}
+.wf-opt { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.wf-opt input[type="text"], .wf-opt input[type="number"], .wf-opt select {
+  padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--text); font-size: 13px; min-width: 130px;
+}
+.wf-add { display: flex; gap: 10px; align-items: center; margin-bottom: 22px; }
+.wf-add select {
+  padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--text); font-size: 14px;
+}
 
 /* ---- tool grid ---- */
 .grid {
