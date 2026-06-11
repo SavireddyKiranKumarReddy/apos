@@ -90,3 +90,32 @@ def test_index_serves_frontend(client):
     response = client.get("/")
     assert response.status_code == 200
     assert "pdfsmith" in response.text
+
+
+def test_sign_runs_inside_the_event_loop(client, pdf3):
+    # pyhanko calls asyncio.run() internally; this would explode if the tool
+    # executed on the event-loop thread instead of a worker thread.
+    response = client.post(
+        "/api/tools/sign",
+        data={"name": "Vishal", "visible": "true"},
+        files=[("files", ("doc.pdf", pdf3, "application/pdf"))],
+    )
+    assert response.status_code == 200
+    assert response.content[:5] == b"%PDF-"
+
+
+def test_inspect_form_fields_endpoint(client):
+    from tests.test_more_tools import make_form_pdf
+
+    response = client.post(
+        "/api/inspect/form-fields",
+        files=[("file", ("form.pdf", make_form_pdf(), "application/pdf"))],
+    )
+    assert response.status_code == 200
+    names = {field["name"] for field in response.json()["fields"]}
+    assert names == {"full_name", "agree"}
+
+
+def test_inspect_form_fields_needs_a_file(client):
+    response = client.post("/api/inspect/form-fields")
+    assert response.status_code == 400

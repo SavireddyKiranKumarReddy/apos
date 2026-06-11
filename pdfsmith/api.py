@@ -12,6 +12,7 @@ import urllib.parse
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -73,7 +74,10 @@ def create_app() -> FastAPI:
             raise HTTPException(400, f"{tool.label} takes a single file")
 
         try:
-            result = tool.run(files, options)
+            # A worker thread keeps slow tools (LibreOffice, OCR, signing) from
+            # blocking the event loop — and pyhanko's internal asyncio.run()
+            # requires being off the loop thread entirely.
+            result = await run_in_threadpool(tool.run, files, options)
         except ToolError as exc:
             raise HTTPException(400, str(exc))
 
@@ -83,6 +87,22 @@ def create_app() -> FastAPI:
             media_type=result.media_type,
             headers={"Content-Disposition": f'attachment; filename="{quoted}"'},
         )
+
+    @app.post("/api/inspect/form-fields")
+    async def inspect_form_fields(request: Request) -> dict:
+        from pdfsmith.tools.forms import list_form_fields
+
+        form = await request.form()
+        for _, value in form.multi_items():
+            if hasattr(value, "read"):
+                data = await value.read()
+                if len(data) > max_upload_bytes():
+                    raise HTTPException(413, "file too large")
+                try:
+                    return {"fields": await run_in_threadpool(list_form_fields, data)}
+                except ToolError as exc:
+                    raise HTTPException(400, str(exc))
+        raise HTTPException(400, "upload a PDF to inspect")
 
     if STATIC_DIR.exists():
         @app.get("/")
