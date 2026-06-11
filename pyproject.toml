@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdfsmith"
+version = "1.0.0"
+description = "Every PDF tool in one tab: merge, split, compress, organize, convert, protect and more — a self-hostable web app with a clean API."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Vishal" }]
+keywords = ["pdf", "merge", "split", "compress", "fastapi", "self-hosted", "pdf-tools"]
+
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "python-multipart>=0.0.9",
+    "pypdf>=4.2",
+    "cryptography>=42",
+    "pikepdf>=9.0",
+    "pypdfium2>=4.30",
+    "img2pdf>=0.5",
+    "reportlab>=4.1",
+    "pdf2docx>=0.5.8",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "httpx>=0.27"]
+ocr = ["ocrmypdf>=16.0"]
+
+[project.scripts]
+pdfsmith = "pdfsmith.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["pdfsmith*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning"]
