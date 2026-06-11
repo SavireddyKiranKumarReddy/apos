@@ -1,0 +1,65 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: System tools (covers the Ghostscript + OCR test paths)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ghostscript tesseract-ocr tesseract-ocr-eng
+
+      - name: Install
+        run: pip install -e ".[dev,ocr]"
+
+      - name: Run tests
+        run: pytest -v
+
+      - name: Boot the server and exercise the API for real
+        run: |
+          uvicorn pdfsmith.api:app --port 8378 &
+          for i in $(seq 1 30); do curl -sf localhost:8378/healthz && break || sleep 1; done
+          python - <<'PY'
+          from tests.conftest import make_text_pdf
+          open('/tmp/a.pdf', 'wb').write(make_text_pdf(("One", "Two")))
+          open('/tmp/b.pdf', 'wb').write(make_text_pdf(("Three",)))
+          PY
+          curl -sf -F "files=@/tmp/a.pdf" -F "files=@/tmp/b.pdf" \
+            -o /tmp/merged.pdf localhost:8378/api/tools/merge
+          python -c "import pypdf; assert len(pypdf.PdfReader('/tmp/merged.pdf').pages) == 3; print('merge over HTTP: ok')"
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build the full image (Ghostscript + LibreOffice + OCR)
+        run: docker build -t pdfsmith .
+
+      - name: Smoke-test the container
+        run: |
+          docker run -d --rm -p 8000:8000 --name smith pdfsmith
+          for i in $(seq 1 45); do curl -sf localhost:8000/healthz && break || sleep 2; done
+          curl -sf localhost:8000/api/tools | python3 -c "
+          import json, sys
+          tools = json.load(sys.stdin)['tools']
+          unavailable = [t['name'] for t in tools if not t['available']]
+          assert not unavailable, f'tools missing in the full image: {unavailable}'
+          print(f'all {len(tools)} tools available in the Docker image')"
+          docker stop smith
