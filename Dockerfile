@@ -26,7 +26,7 @@ WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY pdfsmith ./pdfsmith
 COPY static ./static
-RUN pip install ".[ocr]"
+RUN pip install ".[ocr,ai]"
 
 EXPOSE 8000
 

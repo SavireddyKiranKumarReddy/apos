@@ -56,7 +56,11 @@ jobs:
 
       - name: Smoke-test the container
         run: |
-          docker run -d --rm -p 8000:8000 --name smith pdfsmith
+          # The dummy key only flips the AI tools' availability probe — no
+          # request is made; it proves the image is fully capable once the
+          # operator sets a real key.
+          docker run -d --rm -p 8000:8000 --name smith \
+            -e ANTHROPIC_API_KEY=ci-availability-probe pdfsmith
           for i in $(seq 1 45); do curl -sf localhost:8000/healthz && break || sleep 2; done
           curl -sf localhost:8000/api/tools | python3 -c "
           import json, sys
