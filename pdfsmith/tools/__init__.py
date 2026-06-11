@@ -1,6 +1,7 @@
 """Importing this package registers every tool."""
 
 from pdfsmith.tools import (  # noqa: F401
+    ai,
     analyze,
     basic,
     convert,
