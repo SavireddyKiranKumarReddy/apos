@@ -170,47 +170,63 @@ def run_remove_pages(files: list[UploadedFile], options: dict) -> ToolResult:
     return ToolResult(f"{safe_stem(uploaded.name)}_removed.pdf", writer_bytes(writer))
 
 
-def run_redact(files: list[UploadedFile], options: dict) -> ToolResult:
-    (uploaded,) = files
-    regions = _parse_elements(options, "regions")
-    reader = read_pdf(uploaded.data)
+def _rasterize_redactions(
+    data: bytes, by_page: dict[int, list[tuple[float, float, float, float]]]
+) -> dict[int, bytes]:
+    """Render each affected page to an image, paint solid-black boxes over the
+    fractional (x, y, w, h) regions, and return the page as a one-page PDF. The
+    underlying text is gone because the page is now a picture."""
+    from PIL import ImageDraw
 
-    by_page: dict[int, list[dict]] = {}
-    for region in regions:
-        page_number = int(region.get("page", 1))
-        if not 1 <= page_number <= len(reader.pages):
-            raise ToolError(f"region on page {page_number}, but the document has "
-                            f"{len(reader.pages)} pages")
-        by_page.setdefault(page_number - 1, []).append(region)
-
-    document = pdfium.PdfDocument(uploaded.data)
+    document = pdfium.PdfDocument(data)
     try:
         replacements: dict[int, bytes] = {}
-        for index, page_regions in by_page.items():
+        for index, boxes in by_page.items():
             image = document[index].render(scale=REDACT_DPI / 72).to_pil().convert("RGB")
-            from PIL import ImageDraw
-
             draw = ImageDraw.Draw(image)
-            for region in page_regions:
-                x = float(region["x"]) * image.width
-                y = float(region["y"]) * image.height
-                w = float(region.get("w", 0.1)) * image.width
-                h = float(region.get("h", 0.05)) * image.height
-                draw.rectangle((x, y, x + w, y + h), fill=(0, 0, 0))
+            for fx, fy, fw, fh in boxes:
+                x = fx * image.width
+                y = fy * image.height
+                draw.rectangle((x, y, x + fw * image.width, y + fh * image.height),
+                               fill=(0, 0, 0))
             png = io.BytesIO()
             image.save(png, format="PNG")
             layout = img2pdf.get_fixed_dpi_layout_fun((REDACT_DPI, REDACT_DPI))
             replacements[index] = img2pdf.convert(png.getvalue(), layout_fun=layout)
     finally:
         document.close()
+    return replacements
 
+
+def _assemble_redacted(reader, replacements: dict[int, bytes]) -> bytes:
     writer = pypdf.PdfWriter()
     for index, page in enumerate(reader.pages):
         if index in replacements:
             writer.add_page(pypdf.PdfReader(io.BytesIO(replacements[index])).pages[0])
         else:
             writer.add_page(page)
-    return ToolResult(f"{safe_stem(uploaded.name)}_redacted.pdf", writer_bytes(writer))
+    return writer_bytes(writer)
+
+
+def run_redact(files: list[UploadedFile], options: dict) -> ToolResult:
+    (uploaded,) = files
+    regions = _parse_elements(options, "regions")
+    reader = read_pdf(uploaded.data)
+
+    by_page: dict[int, list[tuple[float, float, float, float]]] = {}
+    for region in regions:
+        page_number = int(region.get("page", 1))
+        if not 1 <= page_number <= len(reader.pages):
+            raise ToolError(f"region on page {page_number}, but the document has "
+                            f"{len(reader.pages)} pages")
+        by_page.setdefault(page_number - 1, []).append((
+            float(region["x"]), float(region["y"]),
+            float(region.get("w", 0.1)), float(region.get("h", 0.05)),
+        ))
+
+    replacements = _rasterize_redactions(uploaded.data, by_page)
+    return ToolResult(f"{safe_stem(uploaded.name)}_redacted.pdf",
+                      _assemble_redacted(reader, replacements))
 
 
 register(Tool(

@@ -18,9 +18,32 @@ PPTX_TYPE = "application/vnd.openxmlformats-officedocument.presentationml.presen
 XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
+def _ensure_macos_lib_path() -> None:
+    """WeasyPrint loads pango/cairo/gobject through ctypes, which on macOS only
+    searches a few default directories — Homebrew installs to /opt/homebrew/lib
+    (Apple Silicon) or /usr/local/lib (Intel), neither of which is searched.
+    Add them to DYLD_FALLBACK_LIBRARY_PATH before the first import so HTML → PDF
+    lights up the moment ``brew install pango`` is done, with no env tweaking."""
+    import os
+    import sys
+
+    if sys.platform != "darwin":
+        return
+    existing = os.environ.get("DYLD_FALLBACK_LIBRARY_PATH", "")
+    parts = existing.split(":") if existing else []
+    for brew_lib in ("/opt/homebrew/lib", "/usr/local/lib"):
+        if os.path.isdir(brew_lib) and brew_lib not in parts:
+            parts.append(brew_lib)
+    # macOS keeps the user-home fallback when the variable is unset; preserve it.
+    if not existing and "~/lib" not in parts:
+        parts.append(os.path.expanduser("~/lib"))
+    os.environ["DYLD_FALLBACK_LIBRARY_PATH"] = ":".join(parts)
+
+
 def weasyprint_available() -> bool:
     import contextlib
 
+    _ensure_macos_lib_path()
     try:
         # WeasyPrint prints a loud banner to stderr when its native libraries
         # are missing; the availability probe runs on every /api/tools call,
@@ -34,6 +57,7 @@ def weasyprint_available() -> bool:
 
 def run_html_to_pdf(files: list[UploadedFile], options: dict) -> ToolResult:
     (uploaded,) = files
+    _ensure_macos_lib_path()
     if not weasyprint_available():
         raise ToolError("HTML rendering needs WeasyPrint's system libraries")
     from weasyprint import HTML

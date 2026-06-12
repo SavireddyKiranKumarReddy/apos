@@ -8,6 +8,7 @@ from pdfsmith.tools import (  # noqa: F401
     convert_more,
     edit,
     forms,
+    redact_auto,
     secure,
     sign,
     transform,
