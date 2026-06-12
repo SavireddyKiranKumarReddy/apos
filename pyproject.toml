@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdfsmith"
-version = "1.2.0"
+version = "1.4.1"
 description = "Every PDF tool in one tab: merge, split, compress, organize, convert, protect and more — a self-hostable web app with a clean API."
 readme = "README.md"
 requires-python = ">=3.10"

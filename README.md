@@ -48,6 +48,7 @@ docker compose up --build
 | 🖋️ | **Sign PDF** | real PAdES digital signatures: your .p12, or a generated certificate |
 | 🕵️ | **Verify signatures** | who signed it, and whether it changed since |
 | ⬛ | **Redact** | black boxes that rasterize the page — the text underneath is *gone* |
+| 🕶️ | **Redact sensitive** | auto-detect emails, phones, IDs, cards (+ custom terms) and black them out |
 | ⚖️ | **Compare** | page-by-page text diff plus a visual difference score |
 | 🩹 | **Repair** | rebuild damaged cross-reference tables |
 | 🏷️ | **Metadata** | set title / author / subject |
@@ -119,6 +120,7 @@ pdfsmith/
     forms.py         AcroForm listing + filling                 (pypdf)
     analyze.py       compare                                    (difflib, pypdfium2)
     secure.py        protect, unlock, repair, metadata          (pikepdf)
+    redact_auto.py   auto-redact sensitive content (PII)        (pdfplumber, pypdfium2)
     ai.py            summarize, translate                       (Claude API, key-gated)
   workflows.py       the pipeline engine: validate + run step chains
   api.py             FastAPI: GET /api/tools, POST /api/tools/{name},
@@ -154,13 +156,13 @@ Where a capability has hard limits, the tool says so rather than pretending:
 
 ## Tests
 
-101 tests cover every tool (AES and signature round-trips, tamper detection,
+107 tests cover every tool (AES and signature round-trips, tamper detection,
 redaction that actually removes text, hand-checked crop math, table
 extraction, compression that never returns a bigger file, workflow chaining
 and its validation rules, AI tools against a stubbed API — no network in
 tests) plus the full HTTP layer (error shapes, upload caps, the event-loop
 regression for signing). CI also boots the real server and merges PDFs over
-HTTP, then builds the Docker image and asserts **all 31 tools** report
+HTTP, then builds the Docker image and asserts **all 32 tools** report
 available inside it.
 
 ```bash
