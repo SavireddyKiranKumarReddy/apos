@@ -4,16 +4,17 @@
 
 import {
   collectEditor,
+  collectRedactions,
   editorActive,
   openEditor,
   resetEditor,
   wireEditor,
-} from "./editor.js";
+} from "./editor.js?v={{v}}";
 import {
   initWorkflows,
   renderWorkflowsGrid,
   setWorkflowToast,
-} from "./workflows.js";
+} from "./workflows.js?v={{v}}";
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -59,32 +60,83 @@ async function init() {
     const response = await fetch("/api/tools");
     const payload = await response.json();
     state.tools = payload.tools;
-    renderTabs();
-    renderGrid();
     renderNavMenus();
     setWorkflowToast(toast);
-    initWorkflows(state.tools, { onExit: showHome });
+    initWorkflows(state.tools, { onExit: () => navigate("/workflows") });
     $("#availability-note").textContent = availabilityNote(payload.tools);
   } catch {
     toast("Could not reach the pdfsmith API — is the server running?", "error");
   }
   $("#search").addEventListener("input", () => {
-    if (state.tab === "workflows") setTab("all");
-    renderGrid();
+    if (state.tab !== "all") setTab("all");
+    else renderGrid();
   });
   document.addEventListener("keydown", (event) => {
     if (event.key === "/" && document.activeElement !== $("#search")) {
       event.preventDefault();
       $("#search").focus();
     }
-    if (event.key === "Escape" && state.tool) showHome();
+    if (event.key === "Escape" && state.tool) navigate("/");
   });
-  $("#back").addEventListener("click", showHome);
-  $("#brand").addEventListener("click", (event) => { event.preventDefault(); showHome(); });
-  $("#again").addEventListener("click", () => openTool(state.tool.name));
+  $("#back").addEventListener("click", () => navigate("/"));
+  $("#cat-back").addEventListener("click", () => navigate("/"));
+  $("#brand").addEventListener("click", (event) => { event.preventDefault(); navigate("/"); });
+  $("#again").addEventListener("click", () => navigate("/tool/" + state.tool.name));
+  $("#done-home").addEventListener("click", () => navigate("/"));
+  $("#editor-back").addEventListener("click", () => navigate("/tool/" + state.tool.name));
+  $("#editor-apply").addEventListener("click", runTool);
   $("#run").addEventListener("click", runTool);
+  setupAuth();
+  setupRouting();
   setupDropzone();
   wireEditor();
+  route();
+}
+
+/* ---------- client-side router ---------- */
+
+const SECTIONS = ["home", "category-page", "auth", "workflow-editor", "tool",
+                  "editor-screen", "result-page"];
+
+function showSection(id) {
+  for (const name of SECTIONS) $("#" + name).hidden = name !== id;
+}
+
+function navigate(path, { replace = false } = {}) {
+  if (path === location.pathname) {
+    route();
+    return;
+  }
+  history[replace ? "replaceState" : "pushState"]({}, "", path);
+  route();
+  window.scrollTo({ top: 0 });
+}
+
+function route() {
+  closeMenus();
+  const path = decodeURIComponent(location.pathname);
+  let match;
+  if (path === "/" || path === "") return renderHome();
+  if (path === "/workflows") return renderWorkflowsView();
+  if (path === "/login") return renderAuth("login");
+  if (path === "/signup") return renderAuth("signup");
+  if ((match = path.match(/^\/category\/([\w-]+)\/?$/))) return renderCategoryPage(match[1]);
+  if ((match = path.match(/^\/tool\/([\w-]+)\/?$/))) {
+    if (state.tools.some((tool) => tool.name === match[1])) return openTool(match[1]);
+  }
+  // unknown path — fall back to home without leaving a dead entry in history
+  navigate("/", { replace: true });
+}
+
+function setupRouting() {
+  window.addEventListener("popstate", route);
+  // intercept in-app links marked data-route (auth buttons, switch links, brand)
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest("a[data-route]");
+    if (!link) return;
+    event.preventDefault();
+    navigate(link.getAttribute("href"));
+  });
 }
 
 function availabilityNote(tools) {
@@ -111,27 +163,79 @@ function setupTheme() {
 
 /* ---------- tabs + nav ---------- */
 
+function tabHref(key) {
+  if (key === "all") return "/";
+  if (key === "workflows") return "/workflows";
+  return "/category/" + key;
+}
+
 function renderTabs() {
   const bar = $("#tabs");
   bar.innerHTML = "";
   for (const [key, label] of TABS) {
-    const button = document.createElement("button");
-    button.className = "tab" + (state.tab === key ? " active" : "");
-    button.textContent = label;
-    button.setAttribute("role", "tab");
-    button.addEventListener("click", () => setTab(key));
-    bar.appendChild(button);
+    const link = document.createElement("a");
+    link.className = "tab" + (state.tab === key ? " active" : "");
+    link.textContent = label;
+    link.href = tabHref(key);
+    link.setAttribute("role", "tab");
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      navigate(tabHref(key));
+    });
+    bar.appendChild(link);
   }
 }
 
 function setTab(key) {
-  state.tab = key;
+  navigate(tabHref(key));
+}
+
+/* ---------- page views ---------- */
+
+function renderHome() {
+  state.tool = null;
+  state.tab = "all";
+  showSection("home");
+  $("#grid").hidden = false;
+  $("#workflows-panel").hidden = true;
   renderTabs();
-  const isWorkflows = key === "workflows";
-  $("#grid").hidden = isWorkflows;
-  $("#workflows-panel").hidden = !isWorkflows;
-  if (isWorkflows) renderWorkflowsGrid($("#workflows-grid"), toast);
-  else renderGrid();
+  renderGrid();
+}
+
+function renderWorkflowsView() {
+  state.tool = null;
+  state.tab = "workflows";
+  showSection("home");
+  $("#grid").hidden = true;
+  $("#workflows-panel").hidden = false;
+  renderTabs();
+  renderWorkflowsGrid($("#workflows-grid"), toast);
+}
+
+const CAT_BLURB = {
+  organize: "Reorder, split, merge and shape your documents page by page.",
+  optimize: "Shrink files and repair damage without losing quality.",
+  convert: "Move between PDF and Office, images, web pages and PDF/A.",
+  edit: "Add text, stamps, page numbers, watermarks — or redact for good.",
+  secure: "Encrypt, unlock and sign with real certificate-based signatures.",
+  intelligence: "Summarize and translate documents with AI.",
+};
+
+function renderCategoryPage(key) {
+  const meta = CATEGORIES.find(([catKey]) => catKey === key);
+  if (!meta) return navigate("/", { replace: true });
+  state.tool = null;
+  state.tab = key;
+  const [, title] = meta;
+  const tools = state.tools.filter((tool) => tool.category === key);
+  $("#cat-hero-icon").textContent = tools[0] ? tools[0].icon : "🧰";
+  $("#cat-hero-title").textContent = title;
+  $("#cat-hero-sub").textContent = CAT_BLURB[key] || "";
+
+  const grid = $("#cat-grid");
+  grid.innerHTML = "";
+  for (const tool of tools) grid.appendChild(card(tool));
+  showSection("category-page");
 }
 
 function renderNavMenus() {
@@ -167,23 +271,23 @@ function renderNavMenus() {
 
   for (const drop of document.querySelectorAll(".nav-drop")) {
     const button = drop.querySelector("button");
-    const menu = drop.querySelector(".menu");
+    // Hover opens the menu via CSS; click toggles it for touch / keyboard.
     button.addEventListener("click", (event) => {
       event.stopPropagation();
-      const wasHidden = menu.hidden;
+      const wasOpen = drop.classList.contains("open");
       closeMenus();
-      menu.hidden = !wasHidden;
-      button.setAttribute("aria-expanded", String(!menu.hidden));
+      drop.classList.toggle("open", !wasOpen);
+      button.setAttribute("aria-expanded", String(!wasOpen));
     });
   }
   document.addEventListener("click", closeMenus);
   for (const quick of document.querySelectorAll("[data-open-tool]")) {
-    quick.addEventListener("click", () => openTool(quick.dataset.openTool));
+    quick.addEventListener("click", () => navigate("/tool/" + quick.dataset.openTool));
   }
 }
 
 function closeMenus() {
-  for (const menu of document.querySelectorAll(".nav-drop .menu")) menu.hidden = true;
+  for (const drop of document.querySelectorAll(".nav-drop")) drop.classList.remove("open");
   for (const button of document.querySelectorAll(".nav-drop button")) {
     button.setAttribute("aria-expanded", "false");
   }
@@ -194,14 +298,62 @@ function menuItem(tool) {
   item.className = "menu-item" + (tool.available ? "" : " unavailable");
   item.innerHTML = `<span>${tool.icon}</span> ${tool.label}`;
   if (tool.available) {
-    item.addEventListener("click", () => {
-      closeMenus();
-      openTool(tool.name);
-    });
+    item.addEventListener("click", () => navigate("/tool/" + tool.name));
   } else {
     item.title = tool.unavailable_hint;
   }
   return item;
+}
+
+/* ---------- auth (UI only — no backend yet) ---------- */
+
+const AUTH_COPY = {
+  login: {
+    title: "Welcome back",
+    sub: "Log in to save your workflows across devices.",
+    submit: "Log in",
+    autocomplete: "current-password",
+    switchText: "New to pdfsmith?",
+    switchLink: "Create an account",
+    switchHref: "/signup",
+    showName: false,
+  },
+  signup: {
+    title: "Create your account",
+    sub: "Sign up to sync workflows — your PDFs are still processed privately.",
+    submit: "Sign up",
+    autocomplete: "new-password",
+    switchText: "Already have an account?",
+    switchLink: "Log in",
+    switchHref: "/login",
+    showName: true,
+  },
+};
+
+function renderAuth(mode) {
+  state.tool = null;
+  const copy = AUTH_COPY[mode];
+  $("#auth-title").textContent = copy.title;
+  $("#auth-sub").textContent = copy.sub;
+  $("#auth-submit").textContent = copy.submit;
+  $("#auth-password").setAttribute("autocomplete", copy.autocomplete);
+  $("#auth-name-field").hidden = !copy.showName;
+  $("#auth-name").required = copy.showName;
+  $("#auth-switch-text").textContent = copy.switchText;
+  const switchLink = $("#auth-switch-link");
+  switchLink.textContent = copy.switchLink;
+  switchLink.setAttribute("href", copy.switchHref);
+  $("#auth-form").dataset.mode = mode;
+  showSection("auth");
+}
+
+function setupAuth() {
+  $("#auth-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const mode = $("#auth-form").dataset.mode || "login";
+    const verb = mode === "signup" ? "Sign-up" : "Login";
+    toast(`${verb} isn't connected to a backend yet — coming soon.`, "");
+  });
 }
 
 /* ---------- home grid ---------- */
@@ -235,34 +387,25 @@ function card(tool) {
     <h3>${tool.label}</h3>
     <p>${tool.description}</p>
     ${tool.available ? "" : `<span class="badge">${tool.unavailable_hint}</span>`}`;
-  if (tool.available) button.addEventListener("click", () => openTool(tool.name));
+  if (tool.available) button.addEventListener("click", () => navigate("/tool/" + tool.name));
   else button.title = tool.unavailable_hint;
   return button;
 }
 
 /* ---------- tool view ---------- */
 
-function showHome() {
-  state.tool = null;
-  $("#tool").hidden = true;
-  $("#workflow-editor").hidden = true;
-  $("#home").hidden = false;
-}
-
 function openTool(name) {
   const tool = state.tools.find((entry) => entry.name === name);
+  if (!tool) return navigate("/", { replace: true });
   state.tool = tool;
   state.files = [];
   state.pageOrder = [];
   state.selectedPages = new Set();
 
-  $("#home").hidden = true;
-  $("#workflow-editor").hidden = true;
-  $("#tool").hidden = false;
+  showSection("tool");
   $("#tool-icon").textContent = tool.icon;
   $("#tool-title").textContent = tool.label;
   $("#tool-desc").textContent = tool.description;
-  $("#result").hidden = true;
   $("#run").disabled = false;
   $("#run").classList.remove("working");
   $("#thumbs").hidden = true;
@@ -374,12 +517,23 @@ function addFiles(files) {
   $("#file-input").value = "";
   renderFileList();
   if (EDITOR_TOOLS[state.tool.name] && state.files.length === 1) {
-    openEditor(state.files[0], state.tool.name, loadPdfjs);
+    enterEditorScreen();
   } else if (state.tool.name === "form_fill" && state.files.length === 1) {
     loadFormFields(state.files[0]);
   } else if (state.tool.wants_pages && state.files.length === 1) {
     renderThumbnails(state.files[0]);
   }
+}
+
+/* Interactive tools (Edit / Redact) jump to a dedicated full-screen editor
+   the moment a file is added, instead of unfurling below the dropzone. */
+function enterEditorScreen() {
+  const tool = state.tool;
+  $("#editor-screen-icon").textContent = tool.icon;
+  $("#editor-screen-title").textContent = tool.label;
+  showSection("editor-screen");
+  window.scrollTo({ top: 0 });
+  openEditor(state.files[0], tool.name, loadPdfjs);
 }
 
 async function loadFormFields(file) {
@@ -570,18 +724,22 @@ async function runTool() {
       toast("add a PDF first", "error");
       return;
     }
-    const { elements, images } = collectEditor();
-    const payload = tool.name === "redact"
-      ? elements.filter((e) => e.type === "rect")
-          .map(({ page, x, y, w, h }) => ({ page, x, y, w, h }))
-      : elements;
+    let payload;
+    if (tool.name === "redact") {
+      payload = collectRedactions();
+    } else {
+      const collected = collectEditor();
+      payload = collected.elements;
+      extraFiles = collected.images;
+    }
     if (!payload.length) {
-      toast("place at least one element on the page first", "error");
+      toast(tool.name === "redact"
+        ? "click some words or draw a box to redact first"
+        : "place at least one element on the page first", "error");
       return;
     }
     document.querySelector(`#options [name=${EDITOR_TOOLS[tool.name]}]`).value =
       JSON.stringify(payload);
-    if (tool.name === "edit") extraFiles = images;
   }
   if (tool.name === "form_fill") {
     const values = {};
@@ -607,7 +765,8 @@ async function runTool() {
     body.append(element.name, element.type === "checkbox" ? element.checked : element.value);
   }
 
-  const button = $("#run");
+  // the active "go" button depends on which screen we ran from
+  const button = $("#editor-screen").hidden ? $("#run") : $("#editor-apply");
   button.disabled = true;
   button.classList.add("working");
   const uploadedBytes = state.files.reduce((sum, file) => sum + file.size, 0);
@@ -622,15 +781,7 @@ async function runTool() {
     const disposition = response.headers.get("Content-Disposition") || "";
     const match = /filename="([^"]+)"/.exec(disposition);
     const filename = decodeURIComponent(match ? match[1] : "result");
-
-    const url = URL.createObjectURL(blob);
-    const download = $("#download");
-    download.href = url;
-    download.download = filename;
-    $("#result-name").textContent = filename;
-    $("#result-meta").textContent = resultMeta(uploadedBytes, blob.size);
-    $("#result").hidden = false;
-    $("#result").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    showResultPage(blob, filename, uploadedBytes);
     toast("Done — your file is ready", "ok");
   } catch (error) {
     toast(error.message, "error");
@@ -638,6 +789,19 @@ async function runTool() {
     button.disabled = false;
     button.classList.remove("working");
   }
+}
+
+/* The dedicated download screen shown after any tool finishes. */
+function showResultPage(blob, filename, uploadedBytes) {
+  const url = URL.createObjectURL(blob);
+  const download = $("#download");
+  download.href = url;
+  download.download = filename;
+  $("#done-name").textContent = filename;
+  $("#done-title").textContent = `${state.tool.label} — done`;
+  $("#done-meta").textContent = resultMeta(uploadedBytes, blob.size);
+  showSection("result-page");
+  window.scrollTo({ top: 0 });
 }
 
 function resultMeta(before, after) {

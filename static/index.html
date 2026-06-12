@@ -6,7 +6,7 @@
 <title>pdfsmith — every PDF tool, one tab</title>
 <meta name="description" content="Merge, split, compress, convert, protect — fast, private PDF tools that run on your own server.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔨</text></svg>">
-<link rel="stylesheet" href="/static/css/app.css">
+<link rel="stylesheet" href="/static/css/app.css?v={{v}}">
 </head>
 <body>
 <div class="bg-blob" aria-hidden="true"></div>
@@ -23,17 +23,19 @@
     <button class="nav-link" data-open-tool="compress">Compress PDF</button>
     <div class="nav-drop" data-menu="convert">
       <button class="nav-link has-caret" aria-haspopup="true" aria-expanded="false">Convert PDF</button>
-      <div class="menu convert-menu" id="convert-menu" hidden></div>
+      <div class="menu convert-menu" id="convert-menu"></div>
     </div>
     <div class="nav-drop" data-menu="all">
       <button class="nav-link has-caret accent" aria-haspopup="true" aria-expanded="false">All PDF Tools</button>
-      <div class="menu mega-menu" id="mega-menu" hidden></div>
+      <div class="menu mega-menu" id="mega-menu"></div>
     </div>
   </nav>
 
   <div class="top-actions">
-    <a class="ghost-link" href="https://github.com/vishalblz10/pdfsmith" target="_blank" rel="noopener">GitHub</a>
+    <a class="ghost-link hide-sm" href="https://github.com/vishalblz10/pdfsmith" target="_blank" rel="noopener">GitHub</a>
     <button class="theme-toggle" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">🌗</button>
+    <a class="nav-auth ghost-link" href="/login" data-route="/login">Log in</a>
+    <a class="nav-auth pill-cta" href="/signup" data-route="/signup">Sign up</a>
   </div>
 </header>
 
@@ -52,6 +54,49 @@
 
     <div id="workflows-panel" class="wf-panel" hidden>
       <div class="grid" id="workflows-grid"></div>
+    </div>
+  </section>
+
+  <section id="category-page" hidden>
+    <button class="back" id="cat-back">← All tools</button>
+    <div class="cat-hero">
+      <span class="cat-hero-icon" id="cat-hero-icon"></span>
+      <h1 id="cat-hero-title"></h1>
+      <p class="sub" id="cat-hero-sub"></p>
+    </div>
+    <div id="cat-grid" class="grid"></div>
+  </section>
+
+  <section id="auth" hidden>
+    <div class="auth-card">
+      <a class="brand auth-brand" href="/" data-route="/">
+        <span class="brand-mark">🔨</span>
+        <span class="brand-name">pdf<em>smith</em></span>
+      </a>
+      <h2 id="auth-title">Welcome back</h2>
+      <p class="auth-sub" id="auth-sub">Log in to save your workflows across devices.</p>
+
+      <form class="auth-form" id="auth-form">
+        <div class="field auth-name" id="auth-name-field" hidden>
+          <label for="auth-name">Name</label>
+          <input type="text" id="auth-name" autocomplete="name" placeholder="Jane Smith">
+        </div>
+        <div class="field">
+          <label for="auth-email">Email</label>
+          <input type="email" id="auth-email" autocomplete="email" placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label for="auth-password">Password</label>
+          <input type="password" id="auth-password" autocomplete="current-password" placeholder="••••••••" required>
+        </div>
+        <button class="cta auth-submit" id="auth-submit" type="submit">Log in</button>
+        <p class="auth-note" id="auth-note">Accounts aren't wired up yet — this is the UI. Your PDF tools work without an account.</p>
+      </form>
+
+      <p class="auth-switch">
+        <span id="auth-switch-text">New to pdfsmith?</span>
+        <a href="/signup" id="auth-switch-link" data-route="/signup">Create an account</a>
+      </p>
     </div>
   </section>
 
@@ -124,7 +169,26 @@
     <ul class="file-list" id="file-list"></ul>
     <div class="thumbs" id="thumbs" hidden></div>
 
-    <div class="editor" id="editor" hidden>
+    <div class="options" id="form-fields" hidden></div>
+    <form class="options" id="options"></form>
+
+    <div class="actions">
+      <button class="cta" id="run">Run</button>
+      <span class="hint" id="hint"></span>
+    </div>
+  </section>
+
+  <section id="editor-screen" hidden>
+    <div class="screen-head">
+      <button class="back" id="editor-back" type="button">← Cancel</button>
+      <div class="screen-title">
+        <span class="tool-icon" id="editor-screen-icon"></span>
+        <h2 id="editor-screen-title"></h2>
+      </div>
+      <button class="cta" id="editor-apply" type="button">Apply &amp; continue →</button>
+    </div>
+
+    <div class="editor" id="editor">
       <div class="editor-bar">
         <div class="editor-tools" id="editor-tools"></div>
         <div class="editor-nav">
@@ -140,23 +204,23 @@
       <p class="hint" id="editor-status"></p>
       <input type="file" id="editor-image-input" accept="image/*" hidden>
     </div>
+  </section>
 
-    <div class="options" id="form-fields" hidden></div>
-    <form class="options" id="options"></form>
-
-    <div class="actions">
-      <button class="cta" id="run">Run</button>
-      <span class="hint" id="hint"></span>
-    </div>
-
-    <div class="result" id="result" hidden>
-      <div class="result-icon">✅</div>
-      <div class="result-body">
-        <strong id="result-name"></strong>
-        <span id="result-meta"></span>
+  <section id="result-page" hidden>
+    <div class="done-card">
+      <div class="done-icon">✅</div>
+      <h2 id="done-title">Your file is ready</h2>
+      <p class="done-sub" id="done-meta"></p>
+      <div class="done-file">
+        <span class="done-file-icon">📄</span>
+        <span id="done-name"></span>
       </div>
-      <a class="cta" id="download" download>Download</a>
-      <button class="ghost" id="again">Start over</button>
+      <a class="cta done-download" id="download" download>⬇  Download</a>
+      <div class="done-actions">
+        <button class="ghost" id="again" type="button">Process another file</button>
+        <button class="ghost" id="done-home" type="button">All tools</button>
+      </div>
+      <p class="done-note">Processed in memory on your server — nothing was stored.</p>
     </div>
   </section>
 </main>
@@ -168,6 +232,6 @@
 
 <div class="toasts" id="toasts" aria-live="assertive"></div>
 
-<script type="module" src="/static/js/app.js"></script>
+<script type="module" src="/static/js/app.js?v={{v}}"></script>
 </body>
 </html>

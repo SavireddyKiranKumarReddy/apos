@@ -1,10 +1,14 @@
-/* The visual page editor used by the Edit and Redact tools.
+/* The visual page editor used by the Edit and Redact tools, shown full-screen.
 
    Renders one page at a time with pdf.js and lets the user place elements on
    an overlay: text boxes, image stamps and rectangles (Edit), or black boxes
-   (Redact). Everything is stored as page-relative fractions from the
-   top-left, which is exactly what the server's overlay/redaction code
-   expects. */
+   (Redact). For Redact it also lays a clickable word layer over the page —
+   every word the document exposes becomes a target you click to black it out,
+   with likely-sensitive words (emails, phones, IDs…) pre-highlighted. Manual
+   black boxes still work for anything that isn't selectable text (e.g. images).
+
+   Everything is stored as page-relative fractions from the top-left, which is
+   exactly what the server's overlay/redaction code expects. */
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -18,6 +22,8 @@ const editor = {
   images: [],        // File objects referenced by image elements
   pendingImage: null,
   scale: 1,          // css px per pdf point
+  words: [],         // [{width,height,words:[{x,y,w,h,text,sensitive}]}] per page
+  selectedWords: new Set(), // ids "page:index" the user marked for redaction
 };
 
 export function editorActive() {
@@ -30,6 +36,8 @@ export function resetEditor() {
   editor.images = [];
   editor.placing = null;
   editor.pendingImage = null;
+  editor.words = [];
+  editor.selectedWords = new Set();
   $("#editor").hidden = true;
   $("#editor-overlay").innerHTML = "";
 }
@@ -51,10 +59,21 @@ export async function openEditor(file, mode, pdfjsLoader) {
   editor.pageCount = editor.pdf.numPages;
   editor.elements = [];
   editor.images = [];
+  editor.words = [];
+  editor.selectedWords = new Set();
+
   $("#editor-tools").innerHTML = "";
-  addToolButton(mode === "edit" ? "+ Text" : null, "text");
-  addToolButton(mode === "edit" ? "+ Image" : null, "image");
-  addToolButton(mode === "edit" ? "+ White box" : "+ Black box", "box");
+  if (mode === "edit") {
+    addToolButton("+ Text", "text");
+    addToolButton("+ Image", "image");
+    addToolButton("+ White box", "box");
+  } else {
+    addToolButton("+ Black box", "box");
+    addActionButton("✨ Select sensitive", selectSensitive);
+    addActionButton("Clear", clearSelection);
+  }
+
+  if (mode === "redact") loadWords(file);  // fire and forget; page renders meanwhile
   await renderPage();
 }
 
@@ -76,6 +95,56 @@ function addToolButton(label, kind) {
   $("#editor-tools").appendChild(button);
 }
 
+function addActionButton(label, handler) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "ghost small";
+  button.textContent = label;
+  button.addEventListener("click", handler);
+  $("#editor-tools").appendChild(button);
+}
+
+async function loadWords(file) {
+  try {
+    const body = new FormData();
+    body.append("file", file, file.name);
+    const response = await fetch("/api/inspect/words", { method: "POST", body });
+    if (!response.ok) return;
+    const payload = await response.json();
+    editor.words = payload.pages || [];
+    paintOverlay();
+    const flagged = editor.words.reduce(
+      (sum, page) => sum + page.words.filter((word) => word.sensitive).length, 0);
+    if (flagged) {
+      setStatus(`${flagged} likely-sensitive item(s) detected — click words to black `
+              + `them out, or press “✨ Select sensitive”.`);
+    } else {
+      setStatus("click any word to black it out, or drag to draw a black box.");
+    }
+  } catch {
+    /* word layer is a bonus; drawing boxes still works without it */
+  }
+}
+
+function currentWords() {
+  const page = editor.words[editor.page - 1];
+  return page ? page.words : [];
+}
+
+function selectSensitive() {
+  editor.words.forEach((page, pageIndex) => {
+    page.words.forEach((word, index) => {
+      if (word.sensitive) editor.selectedWords.add(`${pageIndex + 1}:${index}`);
+    });
+  });
+  paintOverlay();
+}
+
+function clearSelection() {
+  editor.selectedWords.clear();
+  paintOverlay();
+}
+
 function setStatus(text) {
   $("#editor-status").textContent = text;
 }
@@ -83,7 +152,7 @@ function setStatus(text) {
 async function renderPage() {
   const page = await editor.pdf.getPage(editor.page);
   const container = $("#editor-canvas-wrap");
-  const maxWidth = Math.min(container.clientWidth || 720, 760);
+  const maxWidth = Math.min(container.clientWidth || 720, 820);
   const base = page.getViewport({ scale: 1 });
   editor.scale = maxWidth / base.width;
   const viewport = page.getViewport({ scale: editor.scale * (window.devicePixelRatio || 1) });
@@ -96,9 +165,11 @@ async function renderPage() {
   await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
 
   $("#editor-pageno").textContent = `page ${editor.page} / ${editor.pageCount}`;
-  setStatus(editor.mode === "edit"
-    ? "add elements, drag to move, double-click to delete"
-    : "draw black boxes over what must disappear");
+  if (editor.mode === "edit") {
+    setStatus("add elements, drag to move, double-click to delete");
+  } else if (!editor.words.length) {
+    setStatus("draw black boxes over what must disappear");
+  }
   paintOverlay();
 }
 
@@ -119,7 +190,7 @@ export function wireEditor(onChange) {
   let draft = null;
 
   overlay.addEventListener("pointerdown", (event) => {
-    if (event.target !== overlay) return;
+    if (event.target !== overlay) return;  // clicks on words/elements handle themselves
     const position = relativePoint(event);
     if (editor.placing === "text") {
       addElement({ type: "text", page: editor.page, x: position.x, y: position.y,
@@ -132,7 +203,7 @@ export function wireEditor(onChange) {
                    _preview: URL.createObjectURL(editor.pendingImage) });
       editor.pendingImage = null;
       editor.placing = null;
-    } else if (editor.placing === "box") {
+    } else if (editor.placing === "box" || editor.mode === "redact") {
       draft = { start: position, div: document.createElement("div") };
       draft.div.className = "el rect " + (editor.mode === "redact" ? "black" : "white");
       overlay.appendChild(draft.div);
@@ -153,7 +224,7 @@ export function wireEditor(onChange) {
     draft.div.remove();
     if (box.w > 0.005 && box.h > 0.005) {
       addElement({
-        type: editor.mode === "redact" ? "rect" : "rect",
+        type: "rect",
         page: editor.page, ...box,
         color: editor.mode === "redact" ? "#000000" : "#ffffff",
         opacity: 1.0,
@@ -191,6 +262,26 @@ function paintOverlay(focusElement = null) {
   const canvas = $("#editor-canvas");
   overlay.style.width = canvas.style.width;
   overlay.style.height = canvas.style.height;
+
+  // Clickable word layer (redact only), painted under the placed elements.
+  if (editor.mode === "redact") {
+    currentWords().forEach((word, index) => {
+      const id = `${editor.page}:${index}`;
+      const box = document.createElement("div");
+      box.className = "word"
+        + (word.sensitive ? " sensitive" : "")
+        + (editor.selectedWords.has(id) ? " selected" : "");
+      positionDiv(box, word);
+      box.title = editor.selectedWords.has(id) ? "click to un-redact" : `redact “${word.text}”`;
+      box.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (editor.selectedWords.has(id)) editor.selectedWords.delete(id);
+        else editor.selectedWords.add(id);
+        paintOverlay();
+      });
+      overlay.appendChild(box);
+    });
+  }
 
   for (const element of editor.elements) {
     if (element.page !== editor.page) continue;
@@ -269,4 +360,26 @@ async function flipPage(delta) {
 export function collectEditor() {
   const elements = editor.elements.map(({ _preview, ...rest }) => rest);
   return { elements, images: editor.images };
+}
+
+/* Redactions = every selected word's box plus any hand-drawn black boxes. */
+export function collectRedactions() {
+  const regions = [];
+  for (const id of editor.selectedWords) {
+    const [page, index] = id.split(":").map(Number);
+    const word = editor.words[page - 1]?.words[index];
+    if (word) regions.push({ page, x: word.x, y: word.y, w: word.w, h: word.h });
+  }
+  for (const element of editor.elements) {
+    if (element.type === "rect") {
+      regions.push({ page: element.page, x: element.x, y: element.y,
+                     w: element.w, h: element.h });
+    }
+  }
+  return regions;
+}
+
+export function redactionCount() {
+  return editor.selectedWords.size
+    + editor.elements.filter((element) => element.type === "rect").length;
 }
