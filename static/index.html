@@ -3,235 +3,298 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>pdfsmith — every PDF tool, one tab</title>
-<meta name="description" content="Merge, split, compress, convert, protect — fast, private PDF tools that run on your own server.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔨</text></svg>">
+<title>Advanced Professional Suite - Free Online PDF Tools</title>
+<meta name="description" content="Free, secure, and easy-to-use online PDF tools. Merge, split, compress, convert, protect, sign, and watermark PDFs instantly.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23e5322d'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>APS</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/app.css?v={{v}}">
 </head>
 <body>
-<div class="bg-blob" aria-hidden="true"></div>
-
 <header class="top">
-  <a class="brand" href="#" id="brand">
-    <span class="brand-mark">🔨</span>
-    <span class="brand-name">pdf<em>smith</em></span>
-  </a>
+  <div class="header-container">
+    <a class="brand" href="/" data-route="/">
+      <div class="brand-mark">⚡</div>
+      <div class="brand-text">
+        <div class="brand-name">Advanced Professional Suite</div>
+        <div class="brand-tagline">Free Online Tools</div>
+      </div>
+    </a>
 
-  <nav class="main-nav" id="main-nav" aria-label="Tools">
-    <button class="nav-link" data-open-tool="merge">Merge PDF</button>
-    <button class="nav-link" data-open-tool="split">Split PDF</button>
-    <button class="nav-link" data-open-tool="compress">Compress PDF</button>
-    <div class="nav-drop" data-menu="convert">
-      <button class="nav-link has-caret" aria-haspopup="true" aria-expanded="false">Convert PDF</button>
-      <div class="menu convert-menu" id="convert-menu"></div>
-    </div>
-    <div class="nav-drop" data-menu="all">
-      <button class="nav-link has-caret accent" aria-haspopup="true" aria-expanded="false">All PDF Tools</button>
-      <div class="menu mega-menu" id="mega-menu"></div>
-    </div>
-  </nav>
-
-  <div class="top-actions">
-    <a class="ghost-link hide-sm" href="https://github.com/vishalblz10/pdfsmith" target="_blank" rel="noopener">GitHub</a>
-    <button class="theme-toggle" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">🌗</button>
-    <a class="nav-auth ghost-link" href="/login" data-route="/login">Log in</a>
-    <a class="nav-auth pill-cta" href="/signup" data-route="/signup">Sign up</a>
+    <nav class="main-nav" id="main-nav">
+      <button class="nav-link" data-route="/">Home</button>
+      <button class="nav-link" onclick="document.getElementById('all-tools-section').scrollIntoView({behavior:'smooth', block:'start'})">All Tools</button>
+      <div class="nav-drop">
+        <button class="nav-link has-caret">Merge & Split</button>
+        <div class="menu">
+          <div class="menu-col">
+            <button class="menu-item" data-open-tool="merge"><span>🔗</span> Merge PDF</button>
+            <button class="menu-item" data-open-tool="split"><span>✂️</span> Split PDF</button>
+            <button class="menu-item" data-open-tool="organize"><span>📑</span> Organize PDF</button>
+            <button class="menu-item" data-open-tool="rotate"><span>🔄</span> Rotate PDF</button>
+            <button class="menu-item" data-open-tool="remove_pages"><span>🗑️</span> Delete Pages</button>
+          </div>
+        </div>
+      </div>
+      <div class="nav-drop">
+        <button class="nav-link has-caret">Convert</button>
+        <div class="menu">
+          <div class="menu-col">
+            <h4>To PDF</h4>
+            <button class="menu-item" data-open-tool="images_to_pdf"><span>🖼️</span> JPG to PDF</button>
+            <button class="menu-item" data-open-tool="word_to_pdf"><span>📄</span> Word to PDF</button>
+            <button class="menu-item" data-open-tool="excel_to_pdf"><span>📊</span> Excel to PDF</button>
+            <button class="menu-item" data-open-tool="ppt_to_pdf"><span>📽️</span> PowerPoint to PDF</button>
+            <button class="menu-item" data-open-tool="html_to_pdf"><span>🌐</span> HTML to PDF</button>
+            <button class="menu-item" data-open-tool="office_to_pdf"><span>📁</span> Office to PDF</button>
+          </div>
+          <div class="menu-col">
+            <h4>From PDF</h4>
+            <button class="menu-item" data-open-tool="pdf_to_word"><span>📝</span> PDF to Word</button>
+            <button class="menu-item" data-open-tool="pdf_to_excel"><span>📈</span> PDF to Excel</button>
+            <button class="menu-item" data-open-tool="pdf_to_powerpoint"><span>🎯</span> PDF to PPT</button>
+            <button class="menu-item" data-open-tool="pdf_to_images"><span>🖼️</span> PDF to JPG</button>
+            <button class="menu-item" data-open-tool="pdf_to_pdfa"><span>📋</span> PDF to PDF/A</button>
+            <button class="menu-item" data-open-tool="extract_text"><span>📜</span> PDF to Text</button>
+          </div>
+        </div>
+      </div>
+      <div class="nav-drop">
+        <button class="nav-link has-caret">Edit & Secure</button>
+        <div class="menu">
+          <div class="menu-col">
+            <button class="menu-item" data-open-tool="compress"><span>🗜️</span> Compress PDF</button>
+            <button class="menu-item" data-open-tool="edit"><span>✏️</span> Edit PDF</button>
+            <button class="menu-item" data-open-tool="watermark"><span>💧</span> Watermark PDF</button>
+            <button class="menu-item" data-open-tool="page_numbers"><span>🔢</span> Add Page Numbers</button>
+            <button class="menu-item" data-open-tool="protect"><span>🔒</span> Protect PDF</button>
+            <button class="menu-item" data-open-tool="unlock"><span>🔓</span> Unlock PDF</button>
+            <button class="menu-item" data-open-tool="sign"><span>✍️</span> Sign PDF</button>
+          </div>
+        </div>
+      </div>
+      <div class="nav-drop">
+        <button class="nav-link has-caret">All Tools</button>
+        <div class="menu mega-menu" id="mega-menu"></div>
+      </div>
+      <button class="nav-link" onclick="document.getElementById('about-section').scrollIntoView({behavior:'smooth'})">About</button>
+      <button class="nav-link" onclick="document.getElementById('contact-section').scrollIntoView({behavior:'smooth'})">Contact</button>
+    </nav>
   </div>
 </header>
 
 <main>
   <section id="home">
     <div class="hero">
-      <h1>Every PDF tool, <span class="grad">one tab.</span></h1>
-      <p class="sub">Merge, split, compress, convert, protect — processed in memory on your own
-      server and never stored. No accounts, no limits, no nonsense.</p>
-      <input type="search" id="search" class="search" placeholder="Search tools…  ( / )" autocomplete="off">
-    </div>
+      <h1>Every tool you need to work with <span class="highlight">PDFs</span> in one place</h1>
+      <p class="sub">Free, secure, and easy to use. Merge, split, compress, convert, protect, sign, and watermark PDFs instantly. No signup required.</p>
+      
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="search" id="search" class="search" placeholder="Search for PDF tools..." autocomplete="off">
+      </div>
 
-    <div class="tabs" id="tabs" role="tablist" aria-label="Tool categories"></div>
-
-    <div id="grid" class="grid" aria-live="polite"></div>
-
-    <div id="workflows-panel" class="wf-panel" hidden>
-      <div class="grid" id="workflows-grid"></div>
-    </div>
-  </section>
-
-  <section id="category-page" hidden>
-    <button class="back" id="cat-back">← All tools</button>
-    <div class="cat-hero">
-      <span class="cat-hero-icon" id="cat-hero-icon"></span>
-      <h1 id="cat-hero-title"></h1>
-      <p class="sub" id="cat-hero-sub"></p>
-    </div>
-    <div id="cat-grid" class="grid"></div>
-  </section>
-
-  <section id="auth" hidden>
-    <div class="auth-card">
-      <a class="brand auth-brand" href="/" data-route="/">
-        <span class="brand-mark">🔨</span>
-        <span class="brand-name">pdf<em>smith</em></span>
-      </a>
-      <h2 id="auth-title">Welcome back</h2>
-      <p class="auth-sub" id="auth-sub">Log in to save your workflows across devices.</p>
-
-      <form class="auth-form" id="auth-form">
-        <div class="field auth-name" id="auth-name-field" hidden>
-          <label for="auth-name">Name</label>
-          <input type="text" id="auth-name" autocomplete="name" placeholder="Jane Smith">
-        </div>
-        <div class="field">
-          <label for="auth-email">Email</label>
-          <input type="email" id="auth-email" autocomplete="email" placeholder="you@example.com" required>
-        </div>
-        <div class="field">
-          <label for="auth-password">Password</label>
-          <input type="password" id="auth-password" autocomplete="current-password" placeholder="••••••••" required>
-        </div>
-        <button class="cta auth-submit" id="auth-submit" type="submit">Log in</button>
-        <p class="auth-note" id="auth-note">Accounts aren't wired up yet — this is the UI. Your PDF tools work without an account.</p>
-      </form>
-
-      <p class="auth-switch">
-        <span id="auth-switch-text">New to pdfsmith?</span>
-        <a href="/signup" id="auth-switch-link" data-route="/signup">Create an account</a>
-      </p>
-    </div>
-  </section>
-
-  <section id="workflow-editor" hidden>
-    <button class="back" id="wf-back">← Workflows</button>
-    <div class="tool-head">
-      <span class="tool-icon">⚡</span>
-      <div>
-        <h2 id="wf-title">New workflow</h2>
-        <p class="tool-desc">Chain tools into a pipeline — files flow through every step.</p>
+      <div class="quick-tools">
+        <button class="quick-tool" data-open-tool="merge">🔗 Merge PDF</button>
+        <button class="quick-tool" data-open-tool="split">✂️ Split PDF</button>
+        <button class="quick-tool" data-open-tool="compress">🗜️ Compress PDF</button>
+        <button class="quick-tool" data-open-tool="pdf_to_word">📝 PDF to Word</button>
+        <button class="quick-tool" data-open-tool="word_to_pdf">📄 Word to PDF</button>
+        <button class="quick-tool" data-open-tool="sign">✍️ Sign PDF</button>
+        <button class="quick-tool" data-open-tool="protect">🔒 Protect PDF</button>
       </div>
     </div>
 
-    <div class="field wf-name">
-      <label for="wf-name-input">Workflow name</label>
-      <input type="text" id="wf-name-input" placeholder="e.g. Convert, watermark & compress">
-    </div>
-
-    <ol class="wf-steps" id="wf-steps"></ol>
-    <div class="wf-add">
-      <select id="wf-tool-pick"></select>
-      <button class="ghost" id="wf-add-step" type="button">+ Add step</button>
-    </div>
-
-    <div class="dropzone" id="wf-dropzone" tabindex="0" role="button" aria-label="Add files">
-      <div class="dz-inner">
-        <div class="dz-icon">⬆️</div>
-        <strong>Drop files here</strong>
-        <span>they flow through every step above</span>
+    <div class="container" id="all-tools-section">
+      <div class="section-header">
+        <h2 class="section-title">All PDF Tools</h2>
+        <p class="section-subtitle">Complete suite of PDF tools for all your needs</p>
       </div>
-      <input type="file" id="wf-file-input" multiple hidden>
-    </div>
-    <ul class="file-list" id="wf-file-list"></ul>
-
-    <div class="actions">
-      <button class="cta" id="wf-run">Run workflow</button>
-      <button class="ghost" id="wf-save" type="button">Save</button>
-      <span class="hint" id="wf-hint"></span>
-    </div>
-
-    <div class="result" id="wf-result" hidden>
-      <div class="result-icon">✅</div>
-      <div class="result-body">
-        <strong id="wf-result-name"></strong>
-        <span id="wf-result-meta"></span>
-      </div>
-      <a class="cta" id="wf-download" download>Download</a>
+      <div id="category-rows"></div>
     </div>
   </section>
 
-  <section id="tool" hidden>
-    <button class="back" id="back">← All tools</button>
-    <div class="tool-head">
+  <section id="tool" hidden class="tool-page">
+    <button class="back-link" id="back">← Back to all tools</button>
+    <div class="tool-header">
       <span class="tool-icon" id="tool-icon"></span>
-      <div>
-        <h2 id="tool-title"></h2>
-        <p class="tool-desc" id="tool-desc"></p>
-      </div>
+      <h1 id="tool-title"></h1>
+      <p id="tool-desc"></p>
     </div>
-
-    <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Add files">
-      <div class="dz-inner">
-        <div class="dz-icon">⬆️</div>
-        <strong>Drop files here</strong>
-        <span>or click to browse</span>
-      </div>
+    <div class="upload-box" id="dropzone" tabindex="0">
+      <div class="upload-icon">📁</div>
+      <h3>Select PDF files</h3>
+      <p>or drop files here</p>
       <input type="file" id="file-input" hidden>
     </div>
-
     <ul class="file-list" id="file-list"></ul>
     <div class="thumbs" id="thumbs" hidden></div>
-
-    <div class="options" id="form-fields" hidden></div>
-    <form class="options" id="options"></form>
-
-    <div class="actions">
-      <button class="cta" id="run">Run</button>
-      <span class="hint" id="hint"></span>
+    <div class="options" id="options"></div>
+    <div style="text-align: center; margin-top: 32px;">
+      <button class="btn-primary" id="run">Process Files</button>
     </div>
+    <p id="hint" style="text-align: center; color: var(--text-secondary); margin-top: 12px;"></p>
   </section>
 
-  <section id="editor-screen" hidden>
-    <div class="screen-head">
-      <button class="back" id="editor-back" type="button">← Cancel</button>
-      <div class="screen-title">
-        <span class="tool-icon" id="editor-screen-icon"></span>
-        <h2 id="editor-screen-title"></h2>
-      </div>
-      <button class="cta" id="editor-apply" type="button">Apply &amp; continue →</button>
-    </div>
-
-    <div class="editor" id="editor">
-      <div class="editor-bar">
-        <div class="editor-tools" id="editor-tools"></div>
-        <div class="editor-nav">
-          <button class="ghost small" id="editor-prev" type="button" aria-label="Previous page">‹</button>
-          <span id="editor-pageno"></span>
-          <button class="ghost small" id="editor-next" type="button" aria-label="Next page">›</button>
-        </div>
-      </div>
-      <div class="editor-canvas-wrap" id="editor-canvas-wrap">
-        <canvas id="editor-canvas"></canvas>
-        <div class="editor-overlay" id="editor-overlay"></div>
-      </div>
-      <p class="hint" id="editor-status"></p>
-      <input type="file" id="editor-image-input" accept="image/*" hidden>
-    </div>
-  </section>
-
-  <section id="result-page" hidden>
-    <div class="done-card">
-      <div class="done-icon">✅</div>
+  <section id="result-page" hidden class="result-page">
+    <div class="result-card">
+      <div class="result-icon">✅</div>
       <h2 id="done-title">Your file is ready</h2>
-      <p class="done-sub" id="done-meta"></p>
-      <div class="done-file">
-        <span class="done-file-icon">📄</span>
+      <p id="done-meta"></p>
+      <div style="background: var(--bg-gray); padding: 12px 20px; border-radius: var(--radius-md); margin-bottom: 24px; display: inline-flex; align-items: center; gap: 10px;">
+        <span>📄</span>
         <span id="done-name"></span>
       </div>
-      <a class="cta done-download" id="download" download>⬇  Download</a>
-      <div class="done-actions">
-        <button class="ghost" id="again" type="button">Process another file</button>
-        <button class="ghost" id="done-home" type="button">All tools</button>
+      <br>
+      <a class="download-btn" id="download" download>⬇ Download</a>
+      <div class="result-actions">
+        <button class="btn-secondary" id="again">Process Another File</button>
+        <button class="btn-secondary" id="done-home">Back to Home</button>
       </div>
-      <p class="done-note">Processed in memory on your server — nothing was stored.</p>
     </div>
   </section>
 </main>
 
-<footer>
-  <span>Files are processed in memory and never stored.</span>
-  <span id="availability-note"></span>
+<section class="about-section" id="about-section">
+  <div class="about-container">
+    <h2>About Advanced Professional Suite</h2>
+    <p class="lead">At Advanced Professional Suite, we're redesigning the way you work with documents. We believe everyone deserves access to powerful, free online PDF tools without ever compromising on privacy.</p>
+    
+    <h3 style="font-size: 24px; margin: 40px 0 16px;">Our Core Promise: Your Privacy is Our Priority</h3>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🔐</div>
+        <h3>Absolute Security & Privacy</h3>
+        <p>Your files are protected with HTTPS encryption. All processing happens in memory and files are never stored on our servers.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Unmatched Speed & Efficiency</h3>
+        <p>Get your work done in seconds. Our tools are optimized to perform complex tasks like merging and converting PDFs instantly.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3>Universal & Free Access</h3>
+        <p>Access all our tools from any modern browser on any OS. No sign-up required, completely free with no hidden fees.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="steps-section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">How It Works</h2>
+      <p class="section-subtitle">3 Simple, Secure Steps</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">1</div>
+        <h3>Choose Your Tool</h3>
+        <p>Select the tool you need from our full suite of PDF solutions</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">2</div>
+        <h3>Upload Your File</h3>
+        <p>Drag and drop your file. Processing happens securely in memory</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">3</div>
+        <h3>Download Instantly</h3>
+        <p>Get your processed file instantly, no watermarks</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="stats-section">
+  <div class="stats-grid">
+    <div>
+      <div class="stat-number">100%</div>
+      <div class="stat-label">Secure Processing</div>
+    </div>
+    <div>
+      <div class="stat-number">32+</div>
+      <div class="stat-label">PDF Tools</div>
+    </div>
+    <div>
+      <div class="stat-number">Free</div>
+      <div class="stat-label">Always & Forever</div>
+    </div>
+    <div>
+      <div class="stat-number">No Data</div>
+      <div class="stat-label">Stored Ever</div>
+    </div>
+  </div>
+</section>
+
+<footer id="contact-section">
+  <div class="footer-container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <h3><span>⚡</span> Advanced Professional Suite</h3>
+        <p>Your one-stop solution for free online PDF tools. All processing is done in memory for maximum privacy and security.</p>
+      </div>
+      <div class="footer-section">
+        <h4>Popular Tools</h4>
+        <ul>
+          <li><a href="#" data-open-tool="merge">Merge PDF</a></li>
+          <li><a href="#" data-open-tool="split">Split PDF</a></li>
+          <li><a href="#" data-open-tool="compress">Compress PDF</a></li>
+          <li><a href="#" data-open-tool="pdf_to_word">PDF to Word</a></li>
+          <li><a href="#" data-open-tool="sign">Sign PDF</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h4>Convert</h4>
+        <ul>
+          <li><a href="#" data-open-tool="pdf_to_images">PDF to JPG</a></li>
+          <li><a href="#" data-open-tool="images_to_pdf">JPG to PDF</a></li>
+          <li><a href="#" data-open-tool="office_to_pdf">Office to PDF</a></li>
+          <li><a href="#" data-open-tool="html_to_pdf">HTML to PDF</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="#about-section">About Us</a></li>
+          <li><a href="#contact-section">Contact</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      © 2025 Advanced Professional Suite. All Rights Reserved. | Files are processed in memory and never stored.
+    </div>
+  </div>
 </footer>
 
-<div class="toasts" id="toasts" aria-live="assertive"></div>
-
+<div class="toasts" id="toasts"></div>
 <script type="module" src="/static/js/app.js?v={{v}}"></script>
 </body>
 </html>
+
+<nav class="mobile-nav">
+  <button class="mobile-nav-item active" onclick="navigate('/')">
+    <span class="mobile-nav-icon">🏠</span>
+    <span>Home</span>
+  </button>
+  <button class="mobile-nav-item" onclick="document.getElementById('all-tools-section').scrollIntoView({behavior:'smooth'})">
+    <span class="mobile-nav-icon">🛠️</span>
+    <span>Tools</span>
+  </button>
+  <button class="mobile-nav-item" onclick="navigate('/tool/merge')">
+    <span class="mobile-nav-icon">🔗</span>
+    <span>Merge</span>
+  </button>
+  <button class="mobile-nav-item" onclick="navigate('/tool/compress')">
+    <span class="mobile-nav-icon">🗜️</span>
+    <span>Compress</span>
+  </button>
+  <button class="mobile-nav-item" onclick="document.getElementById('about-section').scrollIntoView({behavior:'smooth'})">
+    <span class="mobile-nav-icon">ℹ️</span>
+    <span>About</span>
+  </button>
+</nav>

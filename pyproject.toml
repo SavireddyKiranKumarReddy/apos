@@ -3,14 +3,14 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pdfsmith"
-version = "1.4.1"
-description = "Every PDF tool in one tab: merge, split, compress, organize, convert, protect and more — a self-hostable web app with a clean API."
+name = "advanced-professional-suite"
+version = "1.0.0"
+description = "Advanced Professional Suite - Every document tool in one tab: PDF, Office, images and more. Convert, edit, merge, split, compress, protect and secure your documents. Fast, private, and self-hostable."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Vishal" }]
-keywords = ["pdf", "merge", "split", "compress", "fastapi", "self-hosted", "pdf-tools"]
+authors = [{ name = "APOS Team" }]
+keywords = ["pdf", "document", "converter", "merge", "split", "compress", "fastapi", "self-hosted", "pdf-tools", "office"]
 
 dependencies = [
     "fastapi>=0.110",

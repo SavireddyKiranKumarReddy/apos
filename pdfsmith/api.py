@@ -15,21 +15,63 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from pdfsmith import __version__
 from pdfsmith.tools import all_tools, get_tool
 from pdfsmith.tools.helpers import ToolError
 from pdfsmith.tools.registry import UploadedFile
+from pdfsmith.config import settings
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
 
 def max_upload_bytes() -> int:
-    return int(os.getenv("PDFSMITH_MAX_MB", "50")) * 1024 * 1024
+    return settings.max_upload_bytes
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        return response
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="pdfsmith", version=__version__)
+    app = FastAPI(
+        title="Advanced Professional Suite",
+        description="Convert, edit, merge, split, compress, protect and secure your documents. Fast, private, and self-hostable.",
+        version=__version__,
+        docs_url="/docs",
+        redoc_url="/redoc"
+    )
+    
+    # Security headers
+    app.add_middleware(SecurityHeadersMiddleware)
+    
+    # Add CORS middleware
+    if settings.cors_origins != "*":
+        origins = [origin.strip() for origin in settings.cors_origins.split(",")]
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=origins,
+            allow_credentials=True,
+            allow_methods=["GET", "POST"],
+            allow_headers=["*"],
+        )
+    else:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=False,
+            allow_methods=["GET", "POST"],
+            allow_headers=["*"],
+        )
 
     @app.get("/healthz")
     def healthz() -> dict:

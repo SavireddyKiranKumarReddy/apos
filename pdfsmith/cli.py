@@ -1,4 +1,4 @@
-"""Command line entry point: ``pdfsmith serve``."""
+"""Command line entry point: ``apos serve`` or ``pdfsmith serve``."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import argparse
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="pdfsmith", description="Every PDF tool in one tab.")
+    parser = argparse.ArgumentParser(prog="apos", description="Advanced Professional Suite - Every document tool in one tab.")
     sub = parser.add_subparsers(dest="command", required=True)
 
     serve = sub.add_parser("serve", help="run the web app")
@@ -20,3 +20,9 @@ def main(argv: list[str] | None = None) -> int:
 
     uvicorn.run("pdfsmith.api:app", host=args.host, port=args.port, reload=args.reload)
     return 0
+
+
+# Alias for backward compatibility
+if __name__ == "__main__":
+    main()
+
